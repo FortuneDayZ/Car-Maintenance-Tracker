@@ -2,6 +2,9 @@ DROP DATABASE IF EXISTS car_maintenance_tracker;
 CREATE DATABASE car_maintenance_tracker;
 USE car_maintenance_tracker;
 
+DROP TABLE IF EXISTS Expenses;
+DROP TABLE IF EXISTS ServiceParts;
+DROP TABLE IF EXISTS Parts;
 DROP TABLE IF EXISTS ServiceRecords;
 DROP TABLE IF EXISTS Mechanics;
 DROP TABLE IF EXISTS CarShops;
@@ -11,7 +14,7 @@ DROP TABLE IF EXISTS Users;
 CREATE TABLE Users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
+    hash_placeholder_name VARCHAR(255) NOT NULL,
     `role` ENUM('user', 'admin') NOT NULL DEFAULT 'user',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -55,7 +58,30 @@ CREATE TABLE ServiceRecords (
     FOREIGN KEY (mechanic_id) REFERENCES Mechanics(mechanic_id) ON DELETE SET NULL
 );
 
-INSERT INTO Users (username, password_hash, `role`) VALUES
+CREATE TABLE Parts (
+    part_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT
+);
+
+CREATE TABLE ServiceParts (
+    record_id INT NOT NULL,
+    part_id INT NOT NULL,
+    quantity INT DEFAULT 1,
+    PRIMARY KEY (record_id, part_id),
+    FOREIGN KEY (record_id) REFERENCES ServiceRecords(record_id) ON DELETE CASCADE,
+    FOREIGN KEY (part_id) REFERENCES Parts(part_id) ON DELETE CASCADE
+);
+
+CREATE TABLE Expenses (
+    expense_id INT AUTO_INCREMENT PRIMARY KEY,
+    record_id INT NOT NULL,
+    description VARCHAR(255) NOT NULL,
+    amount DECIMAL(10, 2) NOT NULL,
+    FOREIGN KEY (record_id) REFERENCES ServiceRecords(record_id) ON DELETE CASCADE
+);
+
+INSERT INTO Users (username, hash_placeholder_name, `role`) VALUES
 ('tiger_y', 'hash123', 'admin'),
 ('chris_o', 'hash456', 'user'),
 ('marsel_a', 'hash789', 'user');
@@ -76,19 +102,34 @@ INSERT INTO ServiceRecords (vehicle_id, mechanic_id, service_type, service_date,
 (1, 1, 'Oil Change', '2025-06-15', 35000, 'Synthetic oil used.'),
 (2, 2, 'Brake Pad Replacement', '2025-07-01', 45000, 'Replaced front brake pads.');
 
+INSERT INTO Parts (name, description) VALUES
+('Synthetic Oil 5W-30', 'Full synthetic motor oil'),
+('Oil Filter', 'Standard engine oil filter'),
+('Front Brake Pads', 'Ceramic brake pads');
+
+INSERT INTO ServiceParts (record_id, part_id, quantity) VALUES
+(1, 1, 5),
+(1, 2, 1),
+(2, 3, 1);
+
+INSERT INTO Expenses (record_id, description, amount) VALUES
+(1, 'Labor for Oil Change', 25.00),
+(1, 'Parts for Oil Change', 45.50),
+(2, 'Labor for Brakes', 120.00),
+(2, 'Parts for Brakes', 85.00);
+
 SELECT
     sr.record_id,
     sr.service_type,
     sr.service_date,
     v.make,
     v.model,
-    m.name AS mechanic_name,
-    cs.name AS car_shop
+    SUM(e.amount) AS total_cost
 FROM
     ServiceRecords sr
 JOIN
     Vehicles v ON sr.vehicle_id = v.vehicle_id
-LEFT JOIN
-    Mechanics m ON sr.mechanic_id = m.mechanic_id
-LEFT JOIN
-    CarShops cs ON m.shop_id = cs.shop_id;
+JOIN
+    Expenses e ON sr.record_id = e.record_id
+GROUP BY
+    sr.record_id, v.make, v.model, sr.service_type, sr.service_date;
