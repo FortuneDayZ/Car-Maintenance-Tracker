@@ -2,6 +2,7 @@ DROP DATABASE IF EXISTS car_maintenance_tracker;
 CREATE DATABASE car_maintenance_tracker;
 USE car_maintenance_tracker;
 
+DROP TABLE IF EXISTS Logbook;
 DROP TABLE IF EXISTS Expenses;
 DROP TABLE IF EXISTS ServiceParts;
 DROP TABLE IF EXISTS Parts;
@@ -81,6 +82,14 @@ CREATE TABLE Expenses (
     FOREIGN KEY (record_id) REFERENCES ServiceRecords(record_id) ON DELETE CASCADE
 );
 
+CREATE TABLE Logbook (
+    log_id INT AUTO_INCREMENT PRIMARY KEY,
+    vehicle_id INT NOT NULL,
+    entry_text TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (vehicle_id) REFERENCES Vehicles(vehicle_id) ON DELETE CASCADE
+);
+
 INSERT INTO Users (username, hash_placeholder_name, `role`) VALUES
 ('tiger_y', 'hash123', 'admin'),
 ('chris_o', 'hash456', 'user'),
@@ -118,18 +127,19 @@ INSERT INTO Expenses (record_id, description, amount) VALUES
 (2, 'Labor for Brakes', 120.00),
 (2, 'Parts for Brakes', 85.00);
 
+INSERT INTO Logbook (vehicle_id, entry_text) VALUES
+(1, 'Heard a slight rattling noise from the right rear side when driving over bumps.'),
+(2, 'Check tire pressure before the upcoming road trip.');
+
 SELECT
-    sr.record_id,
-    sr.service_type,
-    sr.service_date,
+    l.log_id,
+    l.entry_text,
+    l.created_at,
     v.make,
-    v.model,
-    SUM(e.amount) AS total_cost
+    v.model
 FROM
-    ServiceRecords sr
+    Logbook l
 JOIN
-    Vehicles v ON sr.vehicle_id = v.vehicle_id
-JOIN
-    Expenses e ON sr.record_id = e.record_id
-GROUP BY
-    sr.record_id, v.make, v.model, sr.service_type, sr.service_date;
+    Vehicles v ON l.vehicle_id = v.vehicle_id
+ORDER BY
+    l.created_at DESC;
