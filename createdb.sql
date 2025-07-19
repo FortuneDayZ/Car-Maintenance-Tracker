@@ -2,6 +2,8 @@ DROP DATABASE IF EXISTS car_maintenance_tracker;
 CREATE DATABASE car_maintenance_tracker;
 USE car_maintenance_tracker;
 
+DROP TABLE IF EXISTS Reminders;
+DROP TABLE IF EXISTS MaintenanceSchedules;
 DROP TABLE IF EXISTS Logbook;
 DROP TABLE IF EXISTS Expenses;
 DROP TABLE IF EXISTS ServiceParts;
@@ -9,7 +11,6 @@ DROP TABLE IF EXISTS Parts;
 DROP TABLE IF EXISTS ServiceRecords;
 DROP TABLE IF EXISTS Mechanics;
 DROP TABLE IF EXISTS CarShops;
-DROP TABLE IF EXISTS Vehicles;
 DROP TABLE IF EXISTS Users;
 
 CREATE TABLE Users (
@@ -90,6 +91,25 @@ CREATE TABLE Logbook (
     FOREIGN KEY (vehicle_id) REFERENCES Vehicles(vehicle_id) ON DELETE CASCADE
 );
 
+CREATE TABLE MaintenanceSchedules (
+    schedule_id INT AUTO_INCREMENT PRIMARY KEY,
+    vehicle_id INT NOT NULL,
+    task_name VARCHAR(100) NOT NULL,
+    interval_miles INT,
+    interval_months INT,
+    last_performed_date DATE,
+    FOREIGN KEY (vehicle_id) REFERENCES Vehicles(vehicle_id) ON DELETE CASCADE
+);
+
+CREATE TABLE Reminders (
+    reminder_id INT AUTO_INCREMENT PRIMARY KEY,
+    schedule_id INT NOT NULL,
+    due_date DATE NOT NULL,
+    message VARCHAR(255),
+    is_active BOOLEAN DEFAULT TRUE,
+    FOREIGN KEY (schedule_id) REFERENCES MaintenanceSchedules(schedule_id) ON DELETE CASCADE
+);
+
 INSERT INTO Users (username, hash_placeholder_name, `role`) VALUES
 ('tiger_y', 'hash123', 'admin'),
 ('chris_o', 'hash456', 'user'),
@@ -131,15 +151,26 @@ INSERT INTO Logbook (vehicle_id, entry_text) VALUES
 (1, 'Heard a slight rattling noise from the right rear side when driving over bumps.'),
 (2, 'Check tire pressure before the upcoming road trip.');
 
+INSERT INTO MaintenanceSchedules (vehicle_id, task_name, interval_miles, last_performed_date, interval_months) VALUES
+(1, 'Oil Change', 5000, '2025-06-15', 6),
+(2, 'Tire Rotation', 7500, '2024-12-01', 4);
+
+INSERT INTO Reminders (schedule_id, due_date, message) VALUES
+(1, '2025-11-15', 'Your Toyota Camry is due for an oil change soon.'),
+(2, '2025-08-01', 'Reminder: Time to rotate the tires on your Honda Civic.');
+
 SELECT
-    l.log_id,
-    l.entry_text,
-    l.created_at,
+    r.reminder_id,
+    r.message,
+    r.due_date,
     v.make,
-    v.model
+    v.model,
+    ms.task_name
 FROM
-    Logbook l
+    Reminders r
 JOIN
-    Vehicles v ON l.vehicle_id = v.vehicle_id
-ORDER BY
-    l.created_at DESC;
+    MaintenanceSchedules ms ON r.schedule_id = ms.schedule_id
+JOIN
+    Vehicles v ON ms.vehicle_id = v.vehicle_id
+WHERE
+    r.is_active = TRUE;
