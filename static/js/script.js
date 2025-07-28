@@ -393,9 +393,10 @@ const dataManager = {
   },
 
   updateUserDisplay() {
-    const userElement = document.getElementById('current-user-name');
-    if (userElement) {
-      userElement.textContent = currentUser.name;
+    const profileUserElement = document.getElementById('profile-user-name');
+    
+    if (profileUserElement) {
+      profileUserElement.textContent = currentUser.name;
     }
   },
 
