@@ -2,7 +2,7 @@ DROP DATABASE IF EXISTS `Final`;
 CREATE DATABASE `Final`;
 USE `Final`;
 
-
+-- Table for user information.
 CREATE TABLE Users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
@@ -12,13 +12,15 @@ CREATE TABLE Users (
     registration_date DATE NOT NULL
 );
 
+-- Table for vehicle information.
 CREATE TABLE Vehicles (
     vin VARCHAR(17) PRIMARY KEY,
     make VARCHAR(50) NOT NULL, 
     model VARCHAR(50) NOT NULL, 
-    year INT NOT NULL 
+    `year` INT NOT NULL 
 );
 
+-- Junction table to link users and the vehicles they own.
 CREATE TABLE Owns (
     user_id INT,
     vin VARCHAR(17),
@@ -31,6 +33,7 @@ CREATE TABLE Owns (
         ON UPDATE CASCADE ON DELETE CASCADE
 );
 
+-- Table for car repair shops.
 CREATE TABLE CarShops (
     car_shop_id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
@@ -38,6 +41,7 @@ CREATE TABLE CarShops (
     phone_number VARCHAR(20)
 );
 
+-- Table for mechanics, associated with car shops.
 CREATE TABLE Mechanics (
     mechanic_id INT AUTO_INCREMENT PRIMARY KEY,
     car_shop_id INT,
@@ -48,6 +52,7 @@ CREATE TABLE Mechanics (
         ON UPDATE CASCADE ON DELETE SET NULL
 );
 
+-- Table for vehicle service records.
 CREATE TABLE ServiceRecords (
     service_id INT AUTO_INCREMENT PRIMARY KEY,
     vin VARCHAR(17) NOT NULL,
@@ -59,6 +64,7 @@ CREATE TABLE ServiceRecords (
         ON UPDATE CASCADE ON DELETE CASCADE
 );
 
+-- Junction table to show which mechanics worked on which service records.
 CREATE TABLE WorkedOn (
     mechanic_id INT,
     service_id INT,
@@ -69,10 +75,12 @@ CREATE TABLE WorkedOn (
     ON UPDATE CASCADE ON DELETE CASCADE
 );
 
+-- Table for different types of services.
 CREATE TABLE ServiceTypes (
     service_type VARCHAR(50) PRIMARY KEY
 );
 
+-- Junction table to link service records with the types of services performed.
 CREATE TABLE ServiceRecords_ServiceTypes (
     service_id INT,
     service_type VARCHAR(50),
@@ -83,6 +91,7 @@ CREATE TABLE ServiceRecords_ServiceTypes (
         ON UPDATE CASCADE ON DELETE CASCADE
 );
 
+-- Table for auto parts.
 CREATE TABLE Parts (
     part_id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
@@ -91,6 +100,7 @@ CREATE TABLE Parts (
     unit_price DECIMAL(10, 2) NOT NULL
 );
 
+-- Junction table to list parts used in a service record.
 CREATE TABLE ServiceRecords_Parts (
     service_id INT,
     part_id INT,
@@ -101,10 +111,11 @@ CREATE TABLE ServiceRecords_Parts (
         ON UPDATE CASCADE ON DELETE CASCADE
 );
 
+-- Table for general vehicle-related expenses.
 CREATE TABLE Expenses (
     expense_id INT AUTO_INCREMENT PRIMARY KEY,
     vin VARCHAR(17) NOT NULL, 
-    date DATE NOT NULL,
+    `date` DATE NOT NULL,
     category VARCHAR(100) NOT NULL, 
     amount DECIMAL(10, 2) NOT NULL,
     description TEXT,
@@ -112,6 +123,7 @@ CREATE TABLE Expenses (
         ON UPDATE CASCADE ON DELETE CASCADE
 );
 
+-- Table for logging fuel fill-ups.
 CREATE TABLE FuelLog (
     fuel_log_id INT AUTO_INCREMENT PRIMARY KEY,
     vin VARCHAR(17) NOT NULL,
@@ -124,19 +136,21 @@ CREATE TABLE FuelLog (
         ON UPDATE CASCADE ON DELETE CASCADE
 );
 
+-- Table for recommended maintenance events.
 CREATE TABLE MaintenanceEvents (
     event_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     vin VARCHAR(17) NOT NULL,
     rec_date DATE NOT NULL,
     rec_mileage INT NOT NULL,
-    status VARCHAR(20) NOT NULL,
+    `status` VARCHAR(20) NOT NULL,
     FOREIGN KEY (user_id) REFERENCES Users(user_id)
         ON UPDATE CASCADE ON DELETE CASCADE,
     FOREIGN KEY (vin) REFERENCES Vehicles(vin)
         ON UPDATE CASCADE ON DELETE CASCADE
 );
 
+-- Junction table to link maintenance events with service types.
 CREATE TABLE MaintenanceEvents_ServiceTypes (
     event_id INT,
     service_type VARCHAR(50),
@@ -147,13 +161,14 @@ CREATE TABLE MaintenanceEvents_ServiceTypes (
         ON UPDATE CASCADE ON DELETE CASCADE
 );
 
-CREATE TABLE Reminder (
+-- Table for maintenance reminders.
+CREATE TABLE `ReminderNotifications` (
     reminder_id INT AUTO_INCREMENT,
     event_id INT,
-    message TEXT,
+    `message` TEXT,
     send_date DATE NOT NULL,
     is_sent BOOLEAN NOT NULL,
     PRIMARY KEY (reminder_id, event_id),
     FOREIGN KEY (event_id) REFERENCES MaintenanceEvents(event_id) 
         ON UPDATE CASCADE ON DELETE CASCADE
-)
+);
