@@ -77,7 +77,7 @@ SELECT * FROM MaintenanceEvents_ServiceTypes;
 -- DELETE FROM MaintenanceEvents_ServiceTypes WHERE event_id = 3;
 
 -- ReminderNotifications Table Queries
-SELECT * FROM ReminderNotifications;
-SELECT * FROM ReminderNotifications WHERE is_sent = FALSE;
-UPDATE ReminderNotifications SET is_sent = TRUE WHERE reminder_id = 1;
+SELECT * FROM Reminder;
+SELECT * FROM Reminder WHERE is_sent = FALSE;
+UPDATE Reminder SET is_sent = TRUE WHERE reminder_id = 1;
 -- DELETE FROM ReminderNotifications WHERE reminder_id = 3;
