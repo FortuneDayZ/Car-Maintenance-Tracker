@@ -3,6 +3,13 @@
 # MySQL Configuration Script
 # This script allows users to set their MySQL password and test the connection
 
+# Auto-fix permissions if script is not executable
+if [ ! -x "$0" ]; then
+    chmod +x "$0"
+    echo "Fixed execute permissions for $(basename "$0")"
+    exec "$0" "$@"
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
