@@ -1,0 +1,17 @@
+.DS_Store
+.DS_Store
+.DS_Store
+
+# MySQL Credentials (keep secure)
+mysql_credentials.conf
+.env
+
+# Node modules
+node_modules/
+
+# Logs
+*.log
+server.log
+
+# Backup files
+*.bak

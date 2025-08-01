@@ -1,0 +1,686 @@
+/* Custom styles for Vehicle Management System */
+
+.content-section {
+    display: none;
+}
+
+.content-section.active {
+    display: block;
+}
+
+.table-responsive {
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.table th {
+    background-color: rgba(0, 50, 98, 0.1);
+    border-top: none;
+    font-weight: 600;
+    color: var(--berkeley-blue);
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+.detail-row {
+    background-color: rgba(253, 181, 21, 0.05);
+    border-left: 4px solid var(--berkeley-gold);
+}
+
+.detail-row .card {
+    border: none;
+    box-shadow: none;
+}
+
+.relationship-badge {
+    font-size: 0.75rem;
+    margin: 0.125rem;
+}
+
+.navbar-brand {
+    font-weight: 700;
+    font-size: 1.25rem;
+}
+
+.navbar-brand i {
+    color: #fdb515;
+}
+
+.nav-link {
+    font-weight: 500;
+    font-size: 0.9rem;
+    padding: 0.5rem 0.75rem !important;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.nav-link:hover {
+    background-color: rgba(253, 181, 21, 0.2);
+    transform: translateY(-1px);
+    color: #fdb515 !important;
+}
+
+.nav-link.active {
+    background-color: rgba(253, 181, 21, 0.3);
+    border-radius: 4px;
+    color: #fdb515 !important;
+}
+
+.nav-link.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+.nav-link.disabled:hover {
+    background-color: transparent;
+}
+
+/* Authentication styles */
+#userInfo {
+    color: #fff;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+#userInfo .badge {
+    font-size: 0.65rem;
+    margin-left: 0.5rem;
+    padding: 0.25rem 0.5rem;
+}
+
+#userInfo .badge.bg-danger {
+    background-color: #fdb515 !important;
+    color: #003262 !important;
+}
+
+#userInfo .badge.bg-success {
+    background-color: #fdb515 !important;
+    color: #003262 !important;
+}
+
+.navbar-nav .btn {
+    font-size: 0.85rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.navbar-nav .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    background-color: #fdb515 !important;
+    border-color: #fdb515 !important;
+    color: #003262 !important;
+}
+
+/* Login Modal Styles */
+#loginModal {
+    z-index: 1050;
+}
+
+/* Ensure modal backdrop doesn't block interaction when modal is hidden */
+.modal-backdrop {
+    z-index: 1040;
+}
+
+/* When modal is hidden, ensure content is accessible */
+.modal:not(.show) {
+    pointer-events: none;
+}
+
+.modal:not(.show) .modal-backdrop {
+    display: none;
+}
+
+#loginModal .modal-content {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+#loginModal .modal-header {
+    background: linear-gradient(135deg, #003262 0%, #1e4b8a 100%);
+    color: white;
+    border-radius: 12px 12px 0 0;
+    border-bottom: none;
+}
+
+#loginModal .modal-header .btn-close {
+    filter: brightness(0) invert(1);
+}
+
+#loginModal .modal-body {
+    padding: 2rem;
+}
+
+#loginModal .nav-tabs {
+    border-bottom: 2px solid #e9ecef;
+    margin-bottom: 1.5rem;
+}
+
+#loginModal .nav-tabs .nav-link {
+    border: none;
+    color: #6c757d;
+    font-weight: 500;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0;
+    transition: all 0.3s ease;
+}
+
+#loginModal .nav-tabs .nav-link:hover {
+    color: #003262;
+    background-color: rgba(0, 50, 98, 0.1);
+    border: none;
+}
+
+#loginModal .nav-tabs .nav-link.active {
+    color: #003262 !important;
+    background-color: transparent !important;
+    border-bottom: 3px solid #fdb515 !important;
+    font-weight: 600 !important;
+    position: relative;
+}
+
+#loginModal .nav-tabs .nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background-color: #fdb515;
+    z-index: 1;
+}
+
+/* Ensure non-active tabs don't have any active styling */
+#loginModal .nav-tabs .nav-link:not(.active) {
+    color: #6c757d !important;
+    background-color: transparent !important;
+    border-bottom: none !important;
+    font-weight: 500 !important;
+}
+
+/* Additional safety measures to prevent multiple active tabs */
+#loginModal .nav-tabs .nav-link.active + .nav-link.active,
+#loginModal .nav-tabs .nav-link.active ~ .nav-link.active {
+    color: #6c757d !important;
+    background-color: transparent !important;
+    border-bottom: none !important;
+    font-weight: 500 !important;
+}
+
+/* Ensure proper z-index for active tab indicator */
+#loginModal .nav-tabs .nav-link.active::after {
+    z-index: 10;
+}
+
+#loginModal .tab-content {
+    padding-top: 1rem;
+}
+
+#loginModal .form-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+#loginModal .form-control {
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 0.75rem;
+    transition: all 0.3s ease;
+}
+
+#loginModal .form-control:focus {
+    border-color: #003262;
+    box-shadow: 0 0 0 0.2rem rgba(0, 50, 98, 0.25);
+}
+
+#loginModal .alert {
+    border-radius: 8px;
+    border: none;
+    font-size: 0.875rem;
+}
+
+#loginModal .alert-info {
+    background-color: rgba(253, 181, 21, 0.1);
+    border-left: 4px solid #fdb515;
+    color: #003262;
+}
+
+#loginModal .alert-warning {
+    background-color: rgba(255, 193, 7, 0.1);
+    border-left: 4px solid #ffc107;
+    color: #856404;
+}
+
+#loginModal .modal-footer {
+    border-top: 1px solid #e9ecef;
+    padding: 1.5rem 2rem;
+}
+
+#loginModal .btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+#loginModal .btn-primary {
+    background: linear-gradient(135deg, #003262 0%, #1e4b8a 100%);
+    border: none;
+}
+
+#loginModal .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 50, 98, 0.3);
+}
+
+#loginModal .btn-success {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    border: none;
+}
+
+#loginModal .btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+#loginModal .btn-secondary {
+    background: #6c757d;
+    border: none;
+}
+
+#loginModal .btn-secondary:hover {
+    background: #5a6268;
+    transform: translateY(-2px);
+}
+
+/* Disabled navigation styles */
+.nav-link.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+    cursor: not-allowed;
+    position: relative;
+}
+
+.nav-link.disabled::after {
+    content: "🔒";
+    position: absolute;
+    top: 0;
+    right: 5px;
+    font-size: 0.7rem;
+    opacity: 0.7;
+}
+
+.nav-link.disabled:hover {
+    background-color: transparent;
+    transform: none;
+}
+
+/* Remove lock icons from login/signup elements */
+.navbar-nav.align-items-center .nav-link::after,
+.navbar-nav.align-items-center .btn::after,
+#loginModal .nav-link::after,
+#loginModal .btn::after {
+    content: none !important;
+}
+
+/* Ensure login-related elements are always accessible */
+.navbar-nav.align-items-center .nav-link {
+    pointer-events: auto !important;
+    opacity: 1 !important;
+}
+
+.navbar-nav.align-items-center .btn {
+    pointer-events: auto !important;
+    opacity: 1 !important;
+}
+
+/* Modal elements should always be accessible */
+#loginModal * {
+    pointer-events: auto !important;
+}
+
+#loginModal .btn {
+    pointer-events: auto !important;
+    opacity: 1 !important;
+}
+
+/* Ensure all Add buttons are always clickable */
+.btn[onclick*="showAddForm"] {
+    pointer-events: auto !important;
+    opacity: 1 !important;
+}
+
+/* Remove disabled styling from Add buttons */
+.btn[onclick*="showAddForm"]:not(:disabled) {
+    cursor: pointer !important;
+}
+
+/* Authentication state overlay */
+.auth-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1040;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.auth-overlay .alert {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    text-align: center;
+}
+
+/* Authentication state indicators */
+.auth-required {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.auth-required::after {
+    content: " (Login Required)";
+    font-size: 0.75rem;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.modal-lg {
+    max-width: 800px;
+}
+
+.form-label {
+    font-weight: 500;
+}
+
+.alert {
+    border-radius: 8px;
+}
+
+.card {
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card-header {
+    background-color: rgba(0, 50, 98, 0.1);
+    border-bottom: 1px solid var(--berkeley-blue);
+    font-weight: 600;
+    color: var(--berkeley-blue);
+}
+
+.badge {
+    font-size: 0.75rem;
+}
+
+/* Berkeley Color Scheme */
+:root {
+    --berkeley-blue: #003262;
+    --berkeley-blue-light: #1e4b8a;
+    --berkeley-gold: #fdb515;
+    --berkeley-gold-light: #ffd700;
+}
+
+.btn-primary {
+    background-color: var(--berkeley-blue);
+    border-color: var(--berkeley-blue);
+}
+
+.btn-primary:hover {
+    background-color: var(--berkeley-blue-light);
+    border-color: var(--berkeley-blue-light);
+}
+
+.btn-outline-primary {
+    color: var(--berkeley-blue);
+    border-color: var(--berkeley-blue);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--berkeley-blue);
+    border-color: var(--berkeley-blue);
+}
+
+.alert-info {
+    background-color: rgba(253, 181, 21, 0.1);
+    border-color: var(--berkeley-gold);
+    color: var(--berkeley-blue);
+}
+
+/* Custom animations */
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .navbar-nav {
+        flex-direction: column;
+    }
+    
+    .nav-item {
+        margin-bottom: 0.5rem;
+    }
+    
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+    
+    .btn-sm {
+        padding: 0.125rem 0.25rem;
+        font-size: 0.75rem;
+    }
+}
+
+/* Status indicators */
+.status-pending {
+    color: #ffc107;
+}
+
+.status-completed {
+    color: #28a745;
+}
+
+.status-overdue {
+    color: #dc3545;
+}
+
+/* Relationship indicators */
+.relationship-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+}
+
+.relationship-primary {
+    background-color: #007bff;
+}
+
+.relationship-success {
+    background-color: #28a745;
+}
+
+.relationship-warning {
+    background-color: #ffc107;
+}
+
+.relationship-danger {
+    background-color: #dc3545;
+}
+
+/* Form styling */
+.form-control:focus {
+    border-color: var(--berkeley-blue);
+    box-shadow: 0 0 0 0.2rem rgba(0, 50, 98, 0.25);
+}
+
+.form-select:focus {
+    border-color: var(--berkeley-blue);
+    box-shadow: 0 0 0 0.2rem rgba(0, 50, 98, 0.25);
+}
+
+/* Loading states */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+} 
+
+/* Notification animations */
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+/* Notification container styles */
+#notification-container {
+    pointer-events: none;
+}
+
+#notification-container .alert {
+    pointer-events: auto;
+    min-width: 300px;
+    max-width: 400px;
+    border-radius: 8px;
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+#notification-container .alert-success {
+    border-left-color: #28a745;
+}
+
+#notification-container .alert-danger {
+    border-left-color: #dc3545;
+}
+
+#notification-container .alert-warning {
+    border-left-color: #ffc107;
+}
+
+#notification-container .alert-info {
+    border-left-color: #17a2b8;
+}
+
+/* Reminder popup styles */
+.reminder-popup {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 400px;
+    background: white;
+    border: 2px solid #007bff;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    z-index: 9999;
+    animation: slideInRight 0.3s ease-out;
+}
+
+.reminder-popup .card-header {
+    border-radius: 8px 8px 0 0;
+    background: linear-gradient(135deg, #007bff, #0056b3);
+}
+
+.reminder-popup .btn-close-white {
+    filter: brightness(0) invert(1);
+}
+
+.reminder-popup .alert-info {
+    background-color: #e3f2fd;
+    border-color: #90caf9;
+    color: #1565c0;
+}
+
+/* Reminder popup animations */
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+/* Responsive reminder popup */
+@media (max-width: 768px) {
+    .reminder-popup {
+        width: calc(100vw - 40px);
+        right: 20px;
+        left: 20px;
+    }
+}
