@@ -99,10 +99,14 @@ const AuthManager = {
         // Login form submission
         const loginForm = document.getElementById('loginForm');
         if (loginForm) {
+            console.log('Login form found, adding event listener'); // Debug log
             loginForm.addEventListener('submit', (e) => {
+                console.log('Login form submitted!'); // Debug log
                 e.preventDefault();
                 AuthManager.login();
             });
+        } else {
+            console.error('Login form not found!'); // Debug log
         }
 
         // Signup form submission
@@ -257,8 +261,13 @@ const AuthManager = {
 
     // Login function
     login: async () => {
+        console.log('Login function called!'); // Debug log
+        
         const username = document.getElementById('loginUsername')?.value?.trim();
         const password = document.getElementById('loginPassword')?.value;
+
+        console.log('Username:', username); // Debug log
+        console.log('Password length:', password ? password.length : 0); // Debug log
 
         if (!username || !password) {
             Utils.showAlert('Please enter both username and password', 'warning');

@@ -2,6 +2,7 @@ const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
@@ -12,14 +13,46 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('.')); // Serve static files from current directory
 
+// Load MySQL credentials from configuration file
+function loadMySQLCredentials() {
+    try {
+        const credentialsPath = path.join(__dirname, '..', 'installation', 'mysql_credentials.conf');
+        if (fs.existsSync(credentialsPath)) {
+            const content = fs.readFileSync(credentialsPath, 'utf8');
+            const credentials = {};
+            
+            content.split('\n').forEach(line => {
+                const match = line.match(/^([^#][^=]+)=(.*)$/);
+                if (match) {
+                    credentials[match[1].trim()] = match[2].trim();
+                }
+            });
+            
+            return {
+                host: credentials.MYSQL_HOST || 'localhost',
+                user: credentials.MYSQL_USER || 'root',
+                password: credentials.MYSQL_PASSWORD || '',
+                database: credentials.MYSQL_DATABASE || 'Final',
+                port: credentials.MYSQL_PORT || 3306
+            };
+        }
+    } catch (error) {
+        console.error('Error loading MySQL credentials:', error);
+    }
+    
+    // Fallback to environment variables or defaults
+    return {
+        host: process.env.DB_HOST || 'localhost',
+        user: process.env.DB_USER || 'root',
+        password: process.env.DB_PASSWORD || '',
+        database: process.env.DB_NAME || 'Final',
+        port: process.env.DB_PORT || 3306
+    };
+}
+
 // Database connection
-const db = mysql.createConnection({
-    host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'Final',
-    port: process.env.DB_PORT || 3306
-});
+const dbConfig = loadMySQLCredentials();
+const db = mysql.createConnection(dbConfig);
 
 // Test database connection
 db.connect((err) => {
