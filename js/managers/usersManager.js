@@ -54,6 +54,7 @@ const usersManager = {
                                 <th>Email</th>
                                 <th>Birthday</th>
                                 <th>Registration Date</th>
+                                <th>Admin Status</th>
                                 <th>Relationships</th>
                                 <th>Actions</th>
                             </tr>
@@ -118,6 +119,12 @@ const usersManager = {
                 <td>${Utils.formatDate(user.birthday)}</td>
                 <td>${Utils.formatDate(user.registration_date)}</td>
                 <td>
+                    ${user.is_admin === 1 ? 
+                        '<span class="badge bg-danger"><i class="fas fa-user-shield"></i> Administrator</span>' : 
+                        '<span class="badge bg-secondary"><i class="fas fa-user"></i> Regular User</span>'
+                    }
+                </td>
+                <td>
                     ${Utils.createRelationshipBadges(user, 'user')}
                     <button class="btn btn-sm btn-outline-info" onclick="usersManager.showDetails(${user.user_id})">
                         <i class="fas fa-info-circle"></i> Details
@@ -130,6 +137,15 @@ const usersManager = {
                         </button>
                     ` : ''}
                     ${AuthManager.isAdmin() ? `
+                        ${user.is_admin === 1 ? `
+                            <button class="btn btn-sm btn-warning" onclick="usersManager.demoteFromAdmin(${user.user_id}, '${user.username}')" title="Remove Admin Status">
+                                <i class="fas fa-user-minus"></i>
+                            </button>
+                        ` : `
+                            <button class="btn btn-sm btn-success" onclick="usersManager.promoteToAdmin(${user.user_id}, '${user.username}')" title="Promote to Admin">
+                                <i class="fas fa-user-shield"></i>
+                            </button>
+                        `}
                         <button class="btn btn-sm btn-danger" onclick="usersManager.deleteUser(${user.user_id})">
                             <i class="fas fa-trash"></i>
                         </button>
@@ -137,7 +153,7 @@ const usersManager = {
                 </td>
             </tr>
             <tr id="user-details-${user.user_id}" class="detail-row" style="display: none;">
-                <td colspan="7">
+                <td colspan="8">
                     <div class="card">
                         <div class="card-header">
                             <h6>User Details - ${user.username}</h6>
@@ -404,6 +420,84 @@ const usersManager = {
             usersManager.render();
         } catch (error) {
             Utils.showAlert(`Error deleting user: ${error.message}`, 'danger');
+        }
+    },
+
+    // This function allows administrators to promote regular users to admin status
+    // It includes safety checks to prevent accidental promotion of the current user
+    promoteToAdmin: async (userId, username) => {
+        // Verify that the current user has admin privileges
+        if (!AuthManager.isAdmin()) {
+            Utils.showAlert('Only administrators can promote users to admin status', 'warning');
+            return;
+        }
+
+        // Prevent self-promotion (user promoting themselves)
+        if (userId === AuthManager.currentUser.user_id) {
+            Utils.showAlert('You cannot promote yourself to admin status', 'warning');
+            return;
+        }
+
+        // Confirm the action with the user
+        if (!confirm(`Are you sure you want to promote "${username}" to administrator status?\n\nThis will give them full access to all system features.`)) {
+            return;
+        }
+
+        try {
+            // Update the user's admin status in the database
+            await Database.executeQuery(`UPDATE Users SET is_admin = 1 WHERE user_id = ${userId}`);
+            
+            Utils.showAlert(`Successfully promoted "${username}" to administrator status!`, 'success');
+            
+            // Refresh the users table to show the updated status
+            usersManager.render();
+            
+            // If the promoted user is currently logged in, refresh their session
+            if (window.AuthManager && AuthManager.currentUser && AuthManager.currentUser.user_id === userId) {
+                Utils.showAlert('The promoted user should log out and log back in to access new privileges.', 'info');
+            }
+        } catch (error) {
+            console.error('Error promoting user to admin:', error);
+            Utils.showAlert(`Error promoting user: ${error.message}`, 'danger');
+        }
+    },
+
+    // This function allows administrators to demote other admins to regular user status
+    // It includes safety checks to prevent accidental demotion of the current user
+    demoteFromAdmin: async (userId, username) => {
+        // Verify that the current user has admin privileges
+        if (!AuthManager.isAdmin()) {
+            Utils.showAlert('Only administrators can demote users from admin status', 'warning');
+            return;
+        }
+
+        // Prevent self-demotion (user demoting themselves)
+        if (userId === AuthManager.currentUser.user_id) {
+            Utils.showAlert('You cannot demote yourself from admin status', 'warning');
+            return;
+        }
+
+        // Confirm the action with the user
+        if (!confirm(`Are you sure you want to remove administrator status from "${username}"?\n\nThis will revoke their admin privileges and limit their access to regular user features.`)) {
+            return;
+        }
+
+        try {
+            // Update the user's admin status in the database
+            await Database.executeQuery(`UPDATE Users SET is_admin = 0 WHERE user_id = ${userId}`);
+            
+            Utils.showAlert(`Successfully removed administrator status from "${username}"!`, 'success');
+            
+            // Refresh the users table to show the updated status
+            usersManager.render();
+            
+            // If the demoted user is currently logged in, refresh their session
+            if (window.AuthManager && AuthManager.currentUser && AuthManager.currentUser.user_id === userId) {
+                Utils.showAlert('The demoted user should log out and log back in for changes to take effect.', 'info');
+            }
+        } catch (error) {
+            console.error('Error demoting user from admin:', error);
+            Utils.showAlert(`Error demoting user: ${error.message}`, 'danger');
         }
     }
 };
