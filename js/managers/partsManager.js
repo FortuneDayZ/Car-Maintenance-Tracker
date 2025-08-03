@@ -21,26 +21,47 @@ const partsManager = {
                 // Admin can see all parts
                 parts = await Database.select('SELECT * FROM Parts ORDER BY name');
             } else {
-                // Regular users can only see parts used in their service records
+                // Regular users can see all parts, but we'll mark which ones they've used
                 const userId = AuthManager.currentUser.user_id;
-                parts = await Database.select(`
-                    SELECT DISTINCT p.* 
+                
+                // Get all parts
+                const allParts = await Database.select('SELECT * FROM Parts ORDER BY name');
+                
+                // Get parts the user has used
+                const usedParts = await Database.select(`
+                    SELECT DISTINCT p.part_id
                     FROM Parts p
                     JOIN ServiceRecords_Parts srp ON p.part_id = srp.part_id
                     JOIN ServiceRecords sr ON srp.service_id = sr.service_id
                     JOIN Owns o ON sr.vin = o.vin
                     WHERE o.user_id = ${userId}
-                    ORDER BY p.name
                 `);
+                
+                // Create a set of used part IDs for quick lookup
+                const usedPartIds = new Set(usedParts.map(p => p.part_id));
+                
+                // Mark parts as used by the current user
+                parts = allParts.map(part => ({
+                    ...part,
+                    used_by_user: usedPartIds.has(part.part_id)
+                }));
             }
             
             const table = `
+                ${!AuthManager.isAdmin() ? `
+                <div class="alert alert-info mb-3">
+                    <i class="fas fa-info-circle"></i> 
+                    <strong>Parts Overview:</strong> You can see all available parts in the system. 
+                    Parts marked with <span class="badge bg-success"><i class="fas fa-check"></i> Used</span> 
+                    are ones you've used in your vehicle service records.
+                </div>
+                ` : ''}
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead>
                             <tr>
                                 <th>ID</th>
-                                <th>Name</th>
+                                <th>Name <small class="text-muted">(✓ = Used by you)</small></th>
                                 <th>Manufacturer</th>
                                 <th>Part Number</th>
                                 <th>Unit Price</th>
@@ -103,9 +124,12 @@ const partsManager = {
         }
         
         return `
-            <tr>
+            <tr ${part.used_by_user ? 'class="table-success"' : ''}>
                 <td>${part.part_id}</td>
-                <td>${part.name}</td>
+                <td>
+                    ${part.name}
+                    ${part.used_by_user ? '<span class="badge bg-success ms-2"><i class="fas fa-check"></i> Used</span>' : ''}
+                </td>
                 <td>${part.manufacturer}</td>
                 <td><code>${part.part_number}</code></td>
                 <td>${Utils.formatCurrency(part.unit_price)}</td>

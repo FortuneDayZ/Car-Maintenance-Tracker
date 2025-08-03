@@ -363,29 +363,49 @@ const expensesManager = {
 
     // Get expense summary with aggregate functions
     getExpenseSummary: async (userId, isAdmin) => {
-        const userFilter = isAdmin ? '' : `JOIN Owns o ON e.vin = o.vin WHERE o.user_id = ${userId}`;
-        const whereClause = isAdmin ? 'WHERE' : 'AND';
-        
         try {
-            // Get total and average expenses
-            const summaryResult = await Database.select(`
-                SELECT 
-                    SUM(amount) as total_amount,
-                    AVG(amount) as average_amount,
-                    COUNT(*) as total_count
-                FROM Expenses e
-                ${userFilter}
-            `);
+            let summaryResult, thisMonthResult;
             
-            // Get this month's expenses
-            const thisMonthResult = await Database.select(`
-                SELECT 
-                    SUM(amount) as this_month_amount,
-                    COUNT(*) as this_month_count
-                FROM Expenses e
-                ${userFilter}
-                ${whereClause} DATE_FORMAT(date, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')
-            `);
+            if (isAdmin) {
+                // Get total and average expenses
+                summaryResult = await Database.select(`
+                    SELECT 
+                        SUM(amount) as total_amount,
+                        AVG(amount) as average_amount,
+                        COUNT(*) as total_count
+                    FROM Expenses e
+                `);
+                
+                // Get this month's expenses
+                thisMonthResult = await Database.select(`
+                    SELECT 
+                        SUM(amount) as this_month_amount,
+                        COUNT(*) as this_month_count
+                    FROM Expenses e
+                    WHERE DATE_FORMAT(date, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')
+                `);
+            } else {
+                // Get total and average expenses
+                summaryResult = await Database.select(`
+                    SELECT 
+                        SUM(amount) as total_amount,
+                        AVG(amount) as average_amount,
+                        COUNT(*) as total_count
+                    FROM Expenses e
+                    JOIN Owns o ON e.vin = o.vin
+                    WHERE o.user_id = ${userId}
+                `);
+                
+                // Get this month's expenses
+                thisMonthResult = await Database.select(`
+                    SELECT 
+                        SUM(amount) as this_month_amount,
+                        COUNT(*) as this_month_count
+                    FROM Expenses e
+                    JOIN Owns o ON e.vin = o.vin
+                    WHERE o.user_id = ${userId} AND DATE_FORMAT(date, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')
+                `);
+            }
             
             return {
                 totalAmount: summaryResult[0]?.total_amount || 0,

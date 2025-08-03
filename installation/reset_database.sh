@@ -49,6 +49,23 @@ load_mysql_credentials() {
     fi
 }
 
+# Function to get MySQL config file path
+get_mysql_config_file() {
+    # Try to find mysql_config.cnf
+    if [ -f "../installation/mysql_config.cnf" ]; then
+        echo "../installation/mysql_config.cnf"
+        return 0
+    elif [ -f "installation/mysql_config.cnf" ]; then
+        echo "installation/mysql_config.cnf"
+        return 0
+    else
+        # Fallback to creating temporary config file
+        print_warning "No mysql_config.cnf found, creating temporary config file"
+        create_mysql_config
+        return 1
+    fi
+}
+
 print_status() {
     echo -e "${GREEN}[INFO]${NC} $1"
 }
@@ -89,8 +106,12 @@ EOF
     echo "$config_file"
 }
 
-# Create MySQL config file
-MYSQL_CONFIG_FILE=$(create_mysql_config)
+# Get MySQL config file
+MYSQL_CONFIG_FILE=$(get_mysql_config_file)
+if [ $? -ne 0 ]; then
+    # Fallback to creating temporary config file
+    MYSQL_CONFIG_FILE=$(create_mysql_config)
+fi
 
 # Check if we're in the right directory (from installation subfolder)
 if [ ! -f "../sql/createdb.sql" ] && [ ! -f "sql/createdb.sql" ]; then
@@ -186,5 +207,8 @@ print_status "Login credentials: admin / admin"
 
 # Cleanup temporary files
 if [ ! -z "$MYSQL_CONFIG_FILE" ] && [ -f "$MYSQL_CONFIG_FILE" ]; then
-    rm -f "$MYSQL_CONFIG_FILE"
+    # Only remove if it's a temporary file (starts with /tmp/)
+    if [[ "$MYSQL_CONFIG_FILE" == /tmp/* ]]; then
+        rm -f "$MYSQL_CONFIG_FILE"
+    fi
 fi 

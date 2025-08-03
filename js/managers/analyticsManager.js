@@ -289,102 +289,171 @@ const analyticsManager = {
 
     // 1. SUM with GROUP BY - Expenses by Category
     getExpensesByCategory: async (userId, isAdmin) => {
-        const userFilter = isAdmin ? '' : `JOIN Owns o ON e.vin = o.vin WHERE o.user_id = ${userId}`;
-        
-        const sql = `
-            SELECT category, SUM(amount) as total_amount, COUNT(*) as count
-            FROM Expenses e
-            ${userFilter}
-            GROUP BY category
-            ORDER BY total_amount DESC
-        `;
+        let sql;
+        if (isAdmin) {
+            sql = `
+                SELECT category, SUM(amount) as total_amount, COUNT(*) as count
+                FROM Expenses e
+                GROUP BY category
+                ORDER BY total_amount DESC
+            `;
+        } else {
+            sql = `
+                SELECT category, SUM(amount) as total_amount, COUNT(*) as count
+                FROM Expenses e
+                JOIN Owns o ON e.vin = o.vin
+                WHERE o.user_id = ${userId}
+                GROUP BY category
+                ORDER BY total_amount DESC
+            `;
+        }
         
         return await Database.select(sql);
     },
 
     // 2. AVG with GROUP BY - Average Service Cost by Vehicle
     getAvgServiceCostByVehicle: async (userId, isAdmin) => {
-        const userFilter = isAdmin ? '' : `JOIN Owns o ON sr.vin = o.vin WHERE o.user_id = ${userId}`;
-        
-        const sql = `
-            SELECT CONCAT(v.year, ' ', v.make, ' ', v.model) as vehicle_info,
-                   AVG(sr.cost) as avg_cost, COUNT(*) as service_count
-            FROM ServiceRecords sr
-            LEFT JOIN Vehicles v ON sr.vin = v.vin
-            ${userFilter}
-            GROUP BY sr.vin, v.make, v.model, v.year
-            ORDER BY avg_cost DESC
-        `;
+        let sql;
+        if (isAdmin) {
+            sql = `
+                SELECT CONCAT(v.year, ' ', v.make, ' ', v.model) as vehicle_info,
+                       AVG(sr.cost) as avg_cost, COUNT(*) as service_count
+                FROM ServiceRecords sr
+                LEFT JOIN Vehicles v ON sr.vin = v.vin
+                GROUP BY sr.vin, v.make, v.model, v.year
+                ORDER BY avg_cost DESC
+            `;
+        } else {
+            sql = `
+                SELECT CONCAT(v.year, ' ', v.make, ' ', v.model) as vehicle_info,
+                       AVG(sr.cost) as avg_cost, COUNT(*) as service_count
+                FROM ServiceRecords sr
+                LEFT JOIN Vehicles v ON sr.vin = v.vin
+                JOIN Owns o ON sr.vin = o.vin
+                WHERE o.user_id = ${userId}
+                GROUP BY sr.vin, v.make, v.model, v.year
+                ORDER BY avg_cost DESC
+            `;
+        }
         
         return await Database.select(sql);
     },
 
     // 3. AVG, SUM with GROUP BY - Fuel Statistics
     getFuelStatistics: async (userId, isAdmin) => {
-        const userFilter = isAdmin ? '' : `JOIN Owns o ON e.vin = o.vin WHERE o.user_id = ${userId}`;
-        
-        const sql = `
-            SELECT fe.fuel_type,
-                   SUM(fe.gallons) as total_gallons,
-                                       SUM(e.amount) as total_amount,
-                   AVG(e.amount / fe.gallons) as avg_price_per_gallon,
-                   COUNT(*) as fill_ups
-            FROM Expenses e
-            JOIN FuelExpenses fe ON e.expense_id = fe.expense_id
-            WHERE e.category = 'Fuel'
-            ${userFilter}
-            GROUP BY fe.fuel_type
-                            ORDER BY total_amount DESC
-        `;
+        let sql;
+        if (isAdmin) {
+            sql = `
+                SELECT fe.fuel_type,
+                       SUM(fe.gallons) as total_gallons,
+                       SUM(e.amount) as total_amount,
+                       AVG(e.amount / fe.gallons) as avg_price_per_gallon,
+                       COUNT(*) as fill_ups
+                FROM Expenses e
+                JOIN FuelExpenses fe ON e.expense_id = fe.expense_id
+                WHERE e.category = 'Fuel'
+                GROUP BY fe.fuel_type
+                ORDER BY total_amount DESC
+            `;
+        } else {
+            sql = `
+                SELECT fe.fuel_type,
+                       SUM(fe.gallons) as total_gallons,
+                       SUM(e.amount) as total_amount,
+                       AVG(e.amount / fe.gallons) as avg_price_per_gallon,
+                       COUNT(*) as fill_ups
+                FROM Expenses e
+                JOIN FuelExpenses fe ON e.expense_id = fe.expense_id
+                JOIN Owns o ON e.vin = o.vin
+                WHERE e.category = 'Fuel' AND o.user_id = ${userId}
+                GROUP BY fe.fuel_type
+                ORDER BY total_amount DESC
+            `;
+        }
         
         return await Database.select(sql);
     },
 
     // 4. COUNT with GROUP BY - Service Count by Month
     getServiceCountByMonth: async (userId, isAdmin) => {
-        const userFilter = isAdmin ? '' : `JOIN Owns o ON sr.vin = o.vin WHERE o.user_id = ${userId}`;
-        
-        const sql = `
-            SELECT DATE_FORMAT(service_date, '%Y-%m') as month,
-                   COUNT(*) as service_count,
-                                       SUM(cost) as total_amount
-            FROM ServiceRecords sr
-            ${userFilter}
-            GROUP BY DATE_FORMAT(service_date, '%Y-%m')
-            ORDER BY month DESC
-            LIMIT 12
-        `;
+        let sql;
+        if (isAdmin) {
+            sql = `
+                SELECT DATE_FORMAT(service_date, '%Y-%m') as month,
+                       COUNT(*) as service_count,
+                       SUM(cost) as total_amount
+                FROM ServiceRecords sr
+                GROUP BY DATE_FORMAT(service_date, '%Y-%m')
+                ORDER BY month DESC
+                LIMIT 12
+            `;
+        } else {
+            sql = `
+                SELECT DATE_FORMAT(service_date, '%Y-%m') as month,
+                       COUNT(*) as service_count,
+                       SUM(cost) as total_amount
+                FROM ServiceRecords sr
+                JOIN Owns o ON sr.vin = o.vin
+                WHERE o.user_id = ${userId}
+                GROUP BY DATE_FORMAT(service_date, '%Y-%m')
+                ORDER BY month DESC
+                LIMIT 12
+            `;
+        }
         
         return await Database.select(sql);
     },
 
     // 5. SUM with multiple joins - Total Cost Summary
     getTotalCostSummary: async (userId, isAdmin) => {
-        const userFilter = isAdmin ? '' : `JOIN Owns o ON e.vin = o.vin WHERE o.user_id = ${userId}`;
-        const userFilterService = isAdmin ? '' : `JOIN Owns o ON sr.vin = o.vin WHERE o.user_id = ${userId}`;
+        let expensesResult, fuelResult, serviceResult;
         
-        // Total Expenses
-        const expensesResult = await Database.select(`
-            SELECT SUM(amount) as total_expenses
-            FROM Expenses e
-            ${userFilter}
-        `);
-        
-        // Total Fuel Cost
-        const fuelResult = await Database.select(`
-            SELECT SUM(e.amount) as total_fuel_cost
-            FROM Expenses e
-            JOIN FuelExpenses fe ON e.expense_id = fe.expense_id
-            WHERE e.category = 'Fuel'
-            ${userFilter}
-        `);
-        
-        // Total Service Cost and Average
-        const serviceResult = await Database.select(`
-            SELECT SUM(cost) as total_service_cost, AVG(cost) as avg_service_cost
-            FROM ServiceRecords sr
-            ${userFilterService}
-        `);
+        if (isAdmin) {
+            // Total Expenses
+            expensesResult = await Database.select(`
+                SELECT SUM(amount) as total_expenses
+                FROM Expenses e
+            `);
+            
+            // Total Fuel Cost
+            fuelResult = await Database.select(`
+                SELECT SUM(e.amount) as total_fuel_cost
+                FROM Expenses e
+                JOIN FuelExpenses fe ON e.expense_id = fe.expense_id
+                WHERE e.category = 'Fuel'
+            `);
+            
+            // Total Service Cost and Average
+            serviceResult = await Database.select(`
+                SELECT SUM(cost) as total_service_cost, AVG(cost) as avg_service_cost
+                FROM ServiceRecords sr
+            `);
+        } else {
+            // Total Expenses
+            expensesResult = await Database.select(`
+                SELECT SUM(amount) as total_expenses
+                FROM Expenses e
+                JOIN Owns o ON e.vin = o.vin
+                WHERE o.user_id = ${userId}
+            `);
+            
+            // Total Fuel Cost
+            fuelResult = await Database.select(`
+                SELECT SUM(e.amount) as total_fuel_cost
+                FROM Expenses e
+                JOIN FuelExpenses fe ON e.expense_id = fe.expense_id
+                JOIN Owns o ON e.vin = o.vin
+                WHERE e.category = 'Fuel' AND o.user_id = ${userId}
+            `);
+            
+            // Total Service Cost and Average
+            serviceResult = await Database.select(`
+                SELECT SUM(cost) as total_service_cost, AVG(cost) as avg_service_cost
+                FROM ServiceRecords sr
+                JOIN Owns o ON sr.vin = o.vin
+                WHERE o.user_id = ${userId}
+            `);
+        }
         
         return {
             totalExpenses: expensesResult[0]?.total_expenses || 0,
@@ -396,28 +465,50 @@ const analyticsManager = {
 
     // 6. COUNT with GROUP BY - Maintenance Events by Status
     getMaintenanceByStatus: async (userId, isAdmin) => {
-        const userFilter = isAdmin ? '' : `JOIN Owns o ON me.vin = o.vin WHERE o.user_id = ${userId}`;
-        
         try {
-            // First get the total count for percentage calculation
-            const totalCountResult = await Database.select(`
-                SELECT COUNT(*) as total_count
-                FROM UpcomingServices me
-                ${userFilter}
-            `);
+            let totalCountResult, sql;
             
-            const totalCount = totalCountResult[0]?.total_count || 1; // Avoid division by zero
-            
-            // Then get the status breakdown
-            const sql = `
-                SELECT status,
-                       COUNT(*) as count,
-                       ROUND(COUNT(*) * 100.0 / ${totalCount}, 1) as percentage
-                FROM UpcomingServices me
-                ${userFilter}
-                GROUP BY status
-                ORDER BY count DESC
-            `;
+            if (isAdmin) {
+                // First get the total count for percentage calculation
+                totalCountResult = await Database.select(`
+                    SELECT COUNT(*) as total_count
+                    FROM UpcomingServices me
+                `);
+                
+                const totalCount = totalCountResult[0]?.total_count || 1; // Avoid division by zero
+                
+                // Then get the status breakdown
+                sql = `
+                    SELECT status,
+                           COUNT(*) as count,
+                           ROUND(COUNT(*) * 100.0 / ${totalCount}, 1) as percentage
+                    FROM UpcomingServices me
+                    GROUP BY status
+                    ORDER BY count DESC
+                `;
+            } else {
+                // First get the total count for percentage calculation
+                totalCountResult = await Database.select(`
+                    SELECT COUNT(*) as total_count
+                    FROM UpcomingServices me
+                    JOIN Owns o ON me.vin = o.vin
+                    WHERE o.user_id = ${userId}
+                `);
+                
+                const totalCount = totalCountResult[0]?.total_count || 1; // Avoid division by zero
+                
+                // Then get the status breakdown
+                sql = `
+                    SELECT status,
+                           COUNT(*) as count,
+                           ROUND(COUNT(*) * 100.0 / ${totalCount}, 1) as percentage
+                    FROM UpcomingServices me
+                    JOIN Owns o ON me.vin = o.vin
+                    WHERE o.user_id = ${userId}
+                    GROUP BY status
+                    ORDER BY count DESC
+                `;
+            }
             
             return await Database.select(sql);
         } catch (error) {
@@ -569,47 +660,80 @@ const analyticsManager = {
 
     // Get detailed data for export
     getDetailedDataForExport: async (userId, isAdmin) => {
-        const userFilter = isAdmin ? '' : `JOIN Owns o ON e.vin = o.vin WHERE o.user_id = ${userId}`;
-
-        const userFilterService = isAdmin ? '' : `JOIN Owns o ON sr.vin = o.vin WHERE o.user_id = ${userId}`;
-        const userFilterMaintenance = isAdmin ? '' : `WHERE me.user_id = ${userId}`;
-
         try {
-            // Get detailed data for each section
-            const expenses = await Database.select(`
-                SELECT e.*, v.make, v.model, v.year 
-                FROM Expenses e
-                LEFT JOIN Vehicles v ON e.vin = v.vin
-                ${userFilter}
-                ORDER BY e.date DESC
-            `);
+            let expenses, fuelExpenses, serviceRecords, maintenanceEvents;
+            
+            if (isAdmin) {
+                // Get detailed data for each section
+                expenses = await Database.select(`
+                    SELECT e.*, v.make, v.model, v.year 
+                    FROM Expenses e
+                    LEFT JOIN Vehicles v ON e.vin = v.vin
+                    ORDER BY e.date DESC
+                `);
 
-            const fuelExpenses = await Database.select(`
-                SELECT e.*, fe.gallons, fe.current_mileage, fe.fuel_type, v.make, v.model, v.year 
-                FROM Expenses e
-                JOIN FuelExpenses fe ON e.expense_id = fe.expense_id
-                LEFT JOIN Vehicles v ON e.vin = v.vin
-                WHERE e.category = 'Fuel'
-                ${userFilter}
-                ORDER BY e.date DESC
-            `);
+                fuelExpenses = await Database.select(`
+                    SELECT e.*, fe.gallons, fe.current_mileage, fe.fuel_type, v.make, v.model, v.year 
+                    FROM Expenses e
+                    JOIN FuelExpenses fe ON e.expense_id = fe.expense_id
+                    LEFT JOIN Vehicles v ON e.vin = v.vin
+                    WHERE e.category = 'Fuel'
+                    ORDER BY e.date DESC
+                `);
 
-            const serviceRecords = await Database.select(`
-                SELECT sr.*, v.make, v.model, v.year 
-                FROM ServiceRecords sr
-                LEFT JOIN Vehicles v ON sr.vin = v.vin
-                ${userFilterService}
-                ORDER BY sr.service_date DESC
-            `);
+                serviceRecords = await Database.select(`
+                    SELECT sr.*, v.make, v.model, v.year 
+                    FROM ServiceRecords sr
+                    LEFT JOIN Vehicles v ON sr.vin = v.vin
+                    ORDER BY sr.service_date DESC
+                `);
 
-            const maintenanceEvents = await Database.select(`
-                SELECT me.*, u.username, v.make, v.model, v.year 
-                FROM UpcomingServices me
-                LEFT JOIN Users u ON me.user_id = u.user_id
-                LEFT JOIN Vehicles v ON me.vin = v.vin
-                ${userFilterMaintenance}
-                ORDER BY me.rec_date DESC
-            `);
+                maintenanceEvents = await Database.select(`
+                    SELECT me.*, u.username, v.make, v.model, v.year 
+                    FROM UpcomingServices me
+                    LEFT JOIN Users u ON me.user_id = u.user_id
+                    LEFT JOIN Vehicles v ON me.vin = v.vin
+                    ORDER BY me.rec_date DESC
+                `);
+            } else {
+                // Get detailed data for each section
+                expenses = await Database.select(`
+                    SELECT e.*, v.make, v.model, v.year 
+                    FROM Expenses e
+                    LEFT JOIN Vehicles v ON e.vin = v.vin
+                    JOIN Owns o ON e.vin = o.vin
+                    WHERE o.user_id = ${userId}
+                    ORDER BY e.date DESC
+                `);
+
+                fuelExpenses = await Database.select(`
+                    SELECT e.*, fe.gallons, fe.current_mileage, fe.fuel_type, v.make, v.model, v.year 
+                    FROM Expenses e
+                    JOIN FuelExpenses fe ON e.expense_id = fe.expense_id
+                    LEFT JOIN Vehicles v ON e.vin = v.vin
+                    JOIN Owns o ON e.vin = o.vin
+                    WHERE e.category = 'Fuel' AND o.user_id = ${userId}
+                    ORDER BY e.date DESC
+                `);
+
+                serviceRecords = await Database.select(`
+                    SELECT sr.*, v.make, v.model, v.year 
+                    FROM ServiceRecords sr
+                    LEFT JOIN Vehicles v ON sr.vin = v.vin
+                    JOIN Owns o ON sr.vin = o.vin
+                    WHERE o.user_id = ${userId}
+                    ORDER BY sr.service_date DESC
+                `);
+
+                maintenanceEvents = await Database.select(`
+                    SELECT me.*, u.username, v.make, v.model, v.year 
+                    FROM UpcomingServices me
+                    LEFT JOIN Users u ON me.user_id = u.user_id
+                    LEFT JOIN Vehicles v ON me.vin = v.vin
+                    WHERE me.user_id = ${userId}
+                    ORDER BY me.rec_date DESC
+                `);
+            }
 
             return {
                 expenses,

@@ -427,20 +427,34 @@ const fuelManager = {
 
     // Get fuel summary with aggregate functions
     getFuelSummary: async (userId, isAdmin) => {
-        const userFilter = isAdmin ? '' : `JOIN Owns o ON e.vin = o.vin WHERE o.user_id = ${userId}`;
-        
         try {
-            const summaryResult = await Database.select(`
-                SELECT 
-                    SUM(e.amount) as total_amount,
-                    SUM(fe.gallons) as total_gallons,
-                    AVG(e.amount / fe.gallons) as avg_price_per_gallon,
-                    COUNT(*) as total_fill_ups
-                FROM Expenses e
-                JOIN FuelExpenses fe ON e.expense_id = fe.expense_id
-                WHERE e.category = 'Fuel'
-                ${userFilter}
-            `);
+            let sql;
+            if (isAdmin) {
+                sql = `
+                    SELECT 
+                        SUM(e.amount) as total_amount,
+                        SUM(fe.gallons) as total_gallons,
+                        AVG(e.amount / fe.gallons) as avg_price_per_gallon,
+                        COUNT(*) as total_fill_ups
+                    FROM Expenses e
+                    JOIN FuelExpenses fe ON e.expense_id = fe.expense_id
+                    WHERE e.category = 'Fuel'
+                `;
+            } else {
+                sql = `
+                    SELECT 
+                        SUM(e.amount) as total_amount,
+                        SUM(fe.gallons) as total_gallons,
+                        AVG(e.amount / fe.gallons) as avg_price_per_gallon,
+                        COUNT(*) as total_fill_ups
+                    FROM Expenses e
+                    JOIN FuelExpenses fe ON e.expense_id = fe.expense_id
+                    JOIN Owns o ON e.vin = o.vin
+                    WHERE e.category = 'Fuel' AND o.user_id = ${userId}
+                `;
+            }
+            
+            const summaryResult = await Database.select(sql);
             
             return {
                 totalCost: summaryResult[0]?.total_amount || 0,
