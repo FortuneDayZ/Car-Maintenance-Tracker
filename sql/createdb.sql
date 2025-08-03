@@ -186,7 +186,7 @@ CREATE TABLE Reminder (
     PRIMARY KEY (reminder_id, event_id),
     FOREIGN KEY (event_id) REFERENCES UpcomingServices(event_id) 
         ON UPDATE CASCADE ON DELETE CASCADE
-)
+);
 
 CREATE INDEX idx_make_model ON Vehicles(make, model);
 CREATE INDEX idx_city_state ON CarShops(city, state);
