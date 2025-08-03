@@ -104,17 +104,29 @@ open_browser() {
 # Function to load MySQL credentials
 load_mysql_credentials() {
     # Try to load from mysql_credentials.conf
-    if [ -f "../mysql_credentials.conf" ]; then
+    if [ -f "../installation/mysql_credentials.conf" ]; then
+        print_status "Loading credentials from ../installation/mysql_credentials.conf"
+        source ../installation/mysql_credentials.conf
+        return 0
+    elif [ -f "installation/mysql_credentials.conf" ]; then
+        print_status "Loading credentials from installation/mysql_credentials.conf"
+        source installation/mysql_credentials.conf
+        return 0
+    elif [ -f "../mysql_credentials.conf" ]; then
+        print_status "Loading credentials from ../mysql_credentials.conf"
         source ../mysql_credentials.conf
         return 0
     elif [ -f "mysql_credentials.conf" ]; then
+        print_status "Loading credentials from mysql_credentials.conf"
         source mysql_credentials.conf
         return 0
     else
         # Fallback to default credentials
+        print_warning "No mysql_credentials.conf found, using default credentials"
+        print_warning "Please run ./installation/mysql_config.sh to configure your credentials"
         MYSQL_HOST="localhost"
         MYSQL_USER="root"
-        MYSQL_PASSWORD="Marsel3623!"
+        MYSQL_PASSWORD=""
         MYSQL_DATABASE="Final"
         MYSQL_PORT="3306"
         return 1
