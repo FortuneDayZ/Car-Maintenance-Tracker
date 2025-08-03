@@ -133,6 +133,13 @@ load_mysql_credentials() {
     fi
 }
 
+# Function to cleanup temporary files
+cleanup_temp_files() {
+    if [ ! -z "$MYSQL_CONFIG_FILE" ] && [ -f "$MYSQL_CONFIG_FILE" ]; then
+        rm -f "$MYSQL_CONFIG_FILE"
+    fi
+}
+
 # Main startup function
 start_vehicle_system() {
     print_header
@@ -172,28 +179,44 @@ start_vehicle_system() {
     # Load MySQL credentials
     load_mysql_credentials
     
+    # Create temporary MySQL config file to avoid password prompts
+    create_mysql_config() {
+        local config_file="/tmp/mysql_config_$$.cnf"
+        cat > "$config_file" << EOF
+[client]
+host=$MYSQL_HOST
+user=$MYSQL_USER
+password=$MYSQL_PASSWORD
+port=$MYSQL_PORT
+EOF
+        echo "$config_file"
+    }
+    
     # Check if MySQL is running and set up database
     if command_exists mysql; then
         print_status "Checking MySQL database setup..."
         
+        # Create MySQL config file
+        MYSQL_CONFIG_FILE=$(create_mysql_config)
+        
         # Test MySQL connection
-        if mysql -h "$MYSQL_HOST" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" -e "SELECT 1;" >/dev/null 2>&1; then
+        if mysql --defaults-file="$MYSQL_CONFIG_FILE" -e "SELECT 1;" >/dev/null 2>&1; then
             print_success "MySQL server is accessible"
             
             # Check if database exists
-            if mysql -h "$MYSQL_HOST" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" -e "USE $MYSQL_DATABASE;" >/dev/null 2>&1; then
+            if mysql --defaults-file="$MYSQL_CONFIG_FILE" -e "USE $MYSQL_DATABASE;" >/dev/null 2>&1; then
                 print_success "Database 'Final' exists"
                 
                 # Check if admin user exists
-                admin_exists=$(mysql -h "$MYSQL_HOST" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" $MYSQL_DATABASE -e "SELECT COUNT(*) FROM Users WHERE username = 'admin';" -s -N 2>/dev/null)
+                admin_exists=$(mysql --defaults-file="$MYSQL_CONFIG_FILE" $MYSQL_DATABASE -e "SELECT COUNT(*) FROM Users WHERE username = 'admin';" -s -N 2>/dev/null)
                 if [ "$admin_exists" = "1" ]; then
                     print_success "Admin user exists"
                 else
                     print_warning "Admin user not found. Creating admin user..."
                     if [ -f "../sql/setup_admin.sql" ]; then
-                        mysql -h "$MYSQL_HOST" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" $MYSQL_DATABASE < ../sql/setup_admin.sql >/dev/null 2>&1
+                        mysql --defaults-file="$MYSQL_CONFIG_FILE" $MYSQL_DATABASE < ../sql/setup_admin.sql >/dev/null 2>&1
                     else
-                        mysql -h "$MYSQL_HOST" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" $MYSQL_DATABASE < sql/setup_admin.sql >/dev/null 2>&1
+                        mysql --defaults-file="$MYSQL_CONFIG_FILE" $MYSQL_DATABASE < sql/setup_admin.sql >/dev/null 2>&1
                     fi
                     if [ $? -eq 0 ]; then
                         print_success "Admin user created successfully"
@@ -203,15 +226,15 @@ start_vehicle_system() {
                 fi
                 
                 # Check if service types exist
-                service_types_count=$(mysql -h "$MYSQL_HOST" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" $MYSQL_DATABASE -e "SELECT COUNT(*) FROM ServiceTypes;" -s -N 2>/dev/null)
+                service_types_count=$(mysql --defaults-file="$MYSQL_CONFIG_FILE" $MYSQL_DATABASE -e "SELECT COUNT(*) FROM ServiceTypes;" -s -N 2>/dev/null)
                 if [ "$service_types_count" -gt 0 ]; then
                     print_success "Service types are configured"
                 else
                     print_warning "Service types not found. Creating service types..."
                     if [ -f "../sql/populate_service_types.sql" ]; then
-                        mysql -h "$MYSQL_HOST" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" $MYSQL_DATABASE < ../sql/populate_service_types.sql >/dev/null 2>&1
+                        mysql --defaults-file="$MYSQL_CONFIG_FILE" $MYSQL_DATABASE < ../sql/populate_service_types.sql >/dev/null 2>&1
                     else
-                        mysql -h "$MYSQL_HOST" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" $MYSQL_DATABASE < sql/populate_service_types.sql >/dev/null 2>&1
+                        mysql --defaults-file="$MYSQL_CONFIG_FILE" $MYSQL_DATABASE < sql/populate_service_types.sql >/dev/null 2>&1
                     fi
                     if [ $? -eq 0 ]; then
                         print_success "Service types created successfully"
@@ -224,16 +247,23 @@ start_vehicle_system() {
                 print_warning "Database 'Final' does not exist. Creating database and tables..."
                 
                 # Create database and tables
-                mysql -h "$MYSQL_HOST" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" < ../sql/createdb.sql >/dev/null 2>&1
+                if [ -f "../sql/createdb.sql" ]; then
+                    mysql --defaults-file="$MYSQL_CONFIG_FILE" < ../sql/createdb.sql >/dev/null 2>&1
+                elif [ -f "sql/createdb.sql" ]; then
+                    mysql --defaults-file="$MYSQL_CONFIG_FILE" < sql/createdb.sql >/dev/null 2>&1
+                else
+                    print_error "createdb.sql file not found in ../sql/ or sql/ directories"
+                    exit 1
+                fi
                 if [ $? -eq 0 ]; then
                     print_success "Database and tables created successfully"
                     
                     # Insert sample data
                     print_status "Inserting sample data..."
                     if [ -f "../SQL_Tests/test_insert.sql" ]; then
-                        mysql -h "$MYSQL_HOST" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" $MYSQL_DATABASE < ../SQL_Tests/test_insert.sql >/dev/null 2>&1
+                        mysql --defaults-file="$MYSQL_CONFIG_FILE" $MYSQL_DATABASE < ../SQL_Tests/test_insert.sql >/dev/null 2>&1
                     else
-                        mysql -h "$MYSQL_HOST" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" $MYSQL_DATABASE < SQL_Tests/test_insert.sql >/dev/null 2>&1
+                        mysql --defaults-file="$MYSQL_CONFIG_FILE" $MYSQL_DATABASE < SQL_Tests/test_insert.sql >/dev/null 2>&1
                     fi
                     if [ $? -eq 0 ]; then
                         print_success "Sample data inserted successfully"
@@ -243,7 +273,14 @@ start_vehicle_system() {
                     
                     # Set up admin user
                     print_status "Setting up admin user..."
-                    mysql -h "$MYSQL_HOST" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" $MYSQL_DATABASE < ../sql/setup_admin.sql >/dev/null 2>&1
+                    if [ -f "../sql/setup_admin.sql" ]; then
+                        mysql --defaults-file="$MYSQL_CONFIG_FILE" $MYSQL_DATABASE < ../sql/setup_admin.sql >/dev/null 2>&1
+                    elif [ -f "sql/setup_admin.sql" ]; then
+                        mysql --defaults-file="$MYSQL_CONFIG_FILE" $MYSQL_DATABASE < sql/setup_admin.sql >/dev/null 2>&1
+                    else
+                        print_error "setup_admin.sql file not found"
+                        exit 1
+                    fi
                     if [ $? -eq 0 ]; then
                         print_success "Admin user created successfully"
                     else
@@ -252,7 +289,14 @@ start_vehicle_system() {
                     
                     # Set up service types
                     print_status "Setting up service types..."
-                    mysql -h "$MYSQL_HOST" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" $MYSQL_DATABASE < ../sql/populate_service_types.sql >/dev/null 2>&1
+                    if [ -f "../sql/populate_service_types.sql" ]; then
+                        mysql --defaults-file="$MYSQL_CONFIG_FILE" $MYSQL_DATABASE < ../sql/populate_service_types.sql >/dev/null 2>&1
+                    elif [ -f "sql/populate_service_types.sql" ]; then
+                        mysql --defaults-file="$MYSQL_CONFIG_FILE" $MYSQL_DATABASE < sql/populate_service_types.sql >/dev/null 2>&1
+                    else
+                        print_error "populate_service_types.sql file not found"
+                        exit 1
+                    fi
                     if [ $? -eq 0 ]; then
                         print_success "Service types created successfully"
                     else
@@ -370,8 +414,12 @@ EOF
         wait $SERVER_PID
     else
         print_error "Failed to start server. Check server.log for details."
+        cleanup_temp_files
         exit 1
     fi
+    
+    # Cleanup temporary files
+    cleanup_temp_files
 }
 
 # Function to stop the server
