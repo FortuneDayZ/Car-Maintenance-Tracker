@@ -14,7 +14,12 @@
 
 1. **Clone/Download** the project to your computer
 
-2. **Configure MySQL** (one-time setup):
+2. **Fix Script Permissions** (if you get permission errors):
+   ```bash
+   chmod +x installation/*.sh
+   ```
+
+3. **Configure MySQL** (one-time setup):
    ```bash
    ./installation/mysql_config.sh
    ```
@@ -25,7 +30,7 @@
     ./installation/mysql_config.sh test
    ```
 
-3. **Start the Application**:
+4. **Start the Application**:
    ```bash
    ./installation/start_vehicle_system.sh
    ```
@@ -34,7 +39,7 @@
    - Sets up admin user and service types
    - Starts the web server
 
-4. **Access the Application**:
+5. **Access the Application**:
    - Open browser: `http://localhost:3000`
    - Login: `admin` / `admin`
 
@@ -55,6 +60,7 @@
 
 ### Troubleshooting
 
+- **Permission Denied Error**: Run `chmod +x installation/*.sh` to fix script permissions
 - **Database Connection Error**: Run `mysql_config.sh` to reconfigure credentials
 - **Port Already in Use**: Kill process on port 3000 or change port in `backend/server.js`
 - **Admin Access Denied**: Use "Restore Admin" button in Database Test section
