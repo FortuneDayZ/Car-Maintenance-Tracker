@@ -9,7 +9,8 @@ CREATE TABLE Users (
     password_hash CHAR(60) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     birthday DATE NOT NULL,
-    registration_date DATE NOT NULL
+    registration_date DATE NOT NULL,
+    is_admin INT NOT NULL DEFAULT 0
 );
 
 CREATE TABLE Vehicles (
@@ -115,19 +116,44 @@ CREATE TABLE Expenses (
         ON UPDATE CASCADE ON DELETE CASCADE
 );
 
-CREATE TABLE FuelLog (
-    fuel_log_id INT AUTO_INCREMENT PRIMARY KEY,
-    vin VARCHAR(17) NOT NULL,
-    date_filled DATE NOT NULL,
-    current_mileage INT NOT NULL,
-    gallons DECIMAL(10, 2) NOT NULL,
-    total_cost DECIMAL(10, 2) NOT NULL,
-    fuel_type VARCHAR(50),
-    FOREIGN KEY (vin) REFERENCES Vehicles(vin)
+CREATE TABLE MaintenanceExpenses (
+    expense_id INT PRIMARY KEY,
+    service_id INT NOT NULL,
+    FOREIGN KEY (service_id) REFERENCES ServiceRecords(service_id) 
+        ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (expense_id) REFERENCES Expenses(expense_id) 
         ON UPDATE CASCADE ON DELETE CASCADE
 );
 
-CREATE TABLE MaintenanceEvents (
+CREATE TABLE RegistrationExpenses (
+    expense_id INT PRIMARY KEY,
+    renewal_date DATE NOT NULL,
+    renewal_period VARCHAR(50), -- e.g., '1 year', '2 years'
+    state VARCHAR(50),
+    FOREIGN KEY (expense_id) REFERENCES Expenses(expense_id) 
+        ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+CREATE TABLE InsuranceExpenses (
+    expense_id INT PRIMARY KEY,
+    policy_number VARCHAR(100) NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    provider_name VARCHAR(100),
+    FOREIGN KEY (expense_id) REFERENCES Expenses(expense_id)
+        ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+CREATE TABLE FuelExpenses (
+    expense_id INT PRIMARY KEY,
+    gallons FLOAT NOT NULL,
+    current_mileage INT NOT NULL,
+    fuel_type VARCHAR(50),
+    FOREIGN KEY (expense_id) REFERENCES expenses(expense_id)
+        ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+CREATE TABLE UpcomingServices (
     event_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     vin VARCHAR(17) NOT NULL,
@@ -140,11 +166,11 @@ CREATE TABLE MaintenanceEvents (
         ON UPDATE CASCADE ON DELETE CASCADE
 );
 
-CREATE TABLE MaintenanceEvents_ServiceTypes (
+CREATE TABLE UpcomingServices_ServiceTypes (
     event_id INT,
     service_type VARCHAR(50),
     PRIMARY KEY (event_id, service_type),
-    FOREIGN KEY (event_id) REFERENCES MaintenanceEvents(event_id) 
+    FOREIGN KEY (event_id) REFERENCES UpcomingServices(event_id) 
         ON UPDATE CASCADE ON DELETE CASCADE,
     FOREIGN KEY (service_type) REFERENCES ServiceTypes(service_type) 
         ON UPDATE CASCADE ON DELETE CASCADE
@@ -155,8 +181,9 @@ CREATE TABLE Reminder (
     event_id INT,
     message TEXT,
     send_date DATE NOT NULL,
-    is_sent BOOLEAN NOT NULL,
+    was_sent BOOLEAN NOT NULL,
+    was_read BOOLEAN NOT NULL,
     PRIMARY KEY (reminder_id, event_id),
-    FOREIGN KEY (event_id) REFERENCES MaintenanceEvents(event_id) 
+    FOREIGN KEY (event_id) REFERENCES UpcomingServices(event_id) 
         ON UPDATE CASCADE ON DELETE CASCADE
 )
