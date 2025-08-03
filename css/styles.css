@@ -343,6 +343,22 @@
 .navbar-nav.align-items-center .btn {
     pointer-events: auto !important;
     opacity: 1 !important;
+    cursor: pointer !important;
+}
+
+/* Specifically ensure login and logout buttons never show not-allowed cursor */
+#loginBtn, #logoutBtn {
+    cursor: pointer !important;
+    pointer-events: auto !important;
+    opacity: 1 !important;
+}
+
+#loginBtn:hover, #logoutBtn:hover {
+    cursor: pointer !important;
+}
+
+#loginBtn:disabled, #logoutBtn:disabled {
+    cursor: pointer !important;
 }
 
 /* Modal elements should always be accessible */
@@ -353,6 +369,24 @@
 #loginModal .btn {
     pointer-events: auto !important;
     opacity: 1 !important;
+    cursor: pointer !important;
+}
+
+/* Ensure all login modal buttons and tabs have proper cursor */
+#loginModal .nav-tabs .nav-link {
+    cursor: pointer !important;
+}
+
+#loginModal .nav-tabs .nav-link:hover {
+    cursor: pointer !important;
+}
+
+#loginModal .btn:hover {
+    cursor: pointer !important;
+}
+
+#loginModal .btn:disabled {
+    cursor: pointer !important;
 }
 
 /* Ensure all Add buttons are always clickable */
@@ -363,6 +397,19 @@
 
 /* Remove disabled styling from Add buttons */
 .btn[onclick*="showAddForm"]:not(:disabled) {
+    cursor: pointer !important;
+}
+
+/* Ensure all navbar buttons have proper cursor */
+.navbar .btn {
+    cursor: pointer !important;
+}
+
+.navbar .btn:hover {
+    cursor: pointer !important;
+}
+
+.navbar .btn:disabled {
     cursor: pointer !important;
 }
 
