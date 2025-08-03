@@ -109,7 +109,7 @@ CREATE TABLE Expenses (
     expense_id INT AUTO_INCREMENT PRIMARY KEY,
     vin VARCHAR(17) NOT NULL, 
     date DATE NOT NULL,
-    category VARCHAR(100) NOT NULL, 
+    category ENUM('Maintenance', 'Fuel', 'Registration', 'Insurance', 'Misc') NOT NULL,
     amount DECIMAL(10, 2) NOT NULL,
     description TEXT,
     FOREIGN KEY (vin) REFERENCES Vehicles(vin)
