@@ -641,11 +641,11 @@ const analyticsManager = {
 
                     // Upcoming Services Data
         csvContent += 'UPCOMING SERVICES DETAILED DATA\n';
-            csvContent += 'ID,Vehicle,User,Date,Mileage,Status,Description\n';
+            csvContent += 'ID,Vehicle,User,Date,Mileage,Status\n';
             detailedData.maintenanceEvents.forEach(event => {
                 const vehicle = event.make && event.model && event.year ? 
                     `${event.year} ${event.make} ${event.model}` : 'Unknown Vehicle';
-                csvContent += `${event.event_id},"${vehicle}",${event.username},${event.rec_date},${event.rec_mileage},${event.status},"${event.description}"\n`;
+                csvContent += `${event.event_id},"${vehicle}",${event.username},${event.rec_date},${event.rec_mileage},${event.status}\n`;
             });
 
             // Download the CSV file
