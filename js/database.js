@@ -26,7 +26,8 @@ const Database = {
             return data;
         } catch (error) {
             console.error('Database query error:', error);
-            Utils.showAlert(`Database error: ${error.message}`, 'danger');
+            // Log error to file and display in frontend
+            await LoggingSystem.logDatabaseTestError(error, 'Query Execution', sql);
             throw error;
         }
     },

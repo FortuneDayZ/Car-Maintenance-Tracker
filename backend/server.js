@@ -227,6 +227,53 @@ app.get('/api/db-test', (req, res) => {
     });
 });
 
+// Logging endpoints
+const logFilePath = path.join(__dirname, 'database_test_errors.log');
+
+// Log error to file
+app.post('/api/log-error', (req, res) => {
+    try {
+        const logEntry = req.body;
+        const timestamp = new Date().toISOString();
+        const logLine = `[${timestamp}] ${logEntry.context || 'Unknown'}: ${JSON.stringify(logEntry, null, 2)}\n\n`;
+        
+        fs.appendFileSync(logFilePath, logLine);
+        res.json({ success: true, message: 'Error logged successfully' });
+    } catch (error) {
+        console.error('Error writing to log file:', error);
+        res.status(500).json({ error: 'Failed to write to log file' });
+    }
+});
+
+// Get log file contents
+app.get('/api/get-logs', (req, res) => {
+    try {
+        if (fs.existsSync(logFilePath)) {
+            const logContents = fs.readFileSync(logFilePath, 'utf8');
+            res.setHeader('Content-Type', 'text/plain');
+            res.send(logContents);
+        } else {
+            res.send('No log file found.');
+        }
+    } catch (error) {
+        console.error('Error reading log file:', error);
+        res.status(500).json({ error: 'Failed to read log file' });
+    }
+});
+
+// Clear log file
+app.post('/api/clear-logs', (req, res) => {
+    try {
+        if (fs.existsSync(logFilePath)) {
+            fs.writeFileSync(logFilePath, '');
+        }
+        res.json({ success: true, message: 'Log file cleared successfully' });
+    } catch (error) {
+        console.error('Error clearing log file:', error);
+        res.status(500).json({ error: 'Failed to clear log file' });
+    }
+});
+
 // Serve the main HTML file
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));

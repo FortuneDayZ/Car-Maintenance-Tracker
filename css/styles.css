@@ -731,3 +731,59 @@
         left: 20px;
     }
 }
+
+/* Log modal styling */
+.log-content {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    padding: 15px;
+    max-height: 500px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.log-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.log-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.log-content::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.log-content::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Error log entry styling */
+.log-entry {
+    margin-bottom: 10px;
+    padding: 8px;
+    border-left: 3px solid #dc3545;
+    background-color: #fff;
+    border-radius: 3px;
+}
+
+.log-entry.timestamp {
+    color: #6c757d;
+    font-weight: bold;
+}
+
+.log-entry.context {
+    color: #495057;
+    font-weight: bold;
+}
+
+.log-entry.error {
+    color: #dc3545;
+}

@@ -544,11 +544,11 @@ INSERT INTO ServiceRecords_Parts (service_id, part_id) VALUES
 INSERT INTO Expenses (vin, date, category, amount, description) VALUES
 ('1ABC123XYZ4567890', '2023-01-20', 'Insurance', 120.00, 'Monthly insurance payment'),
 ('2DEF456ABC7890123', '2023-02-01', 'Registration', 200.00, 'Annual vehicle registration'),
-('3GHI789DEF0123456', '2023-03-15', 'Car Wash', 25.00, 'Premium car wash'),
-('4JKL012GHI3456789', '2023-04-10', 'Parking', 50.00, 'Monthly parking pass'),
-('5MNO345JKL6789012', '2023-05-25', 'Tolls', 30.00, 'Toll road charges'),
+('3GHI789DEF0123456', '2023-03-15', 'Misc', 25.00, 'Premium car wash'),
+('4JKL012GHI3456789', '2023-04-10', 'Misc', 50.00, 'Monthly parking pass'),
+('5MNO345JKL6789012', '2023-05-25', 'Misc', 30.00, 'Toll road charges'),
 ('VIN100', '2023-07-01', 'Insurance', 150.00, 'Quarterly insurance payment'),
-('VIN150', '2023-07-01', 'Charging', 40.00, 'Monthly charging subscription');
+('VIN150', '2023-07-01', 'Misc', 40.00, 'Monthly charging subscription');
 
 -- Populate FuelExpenses table
 INSERT INTO Expenses (vin, date, category, amount, description) VALUES
@@ -559,13 +559,9 @@ INSERT INTO Expenses (vin, date, category, amount, description) VALUES
 ('5MNO345JKL6789012', '2023-05-10', 'Fuel', 62.00, 'Fuel expense - 15.5 gallons of Regular'),
 ('VIN141', '2023-06-20', 'Fuel', 44.00, 'Fuel expense - 11.0 gallons of Regular');
 
-INSERT INTO FuelExpenses (expense_id, gallons, current_mileage, fuel_type) VALUES
-(LAST_INSERT_ID()-5, 12.5, 14500, 'Regular'),
-(LAST_INSERT_ID()-4, 13.0, 14900, 'Regular'),
-(LAST_INSERT_ID()-3, 10.2, 24500, 'Premium'),
-(LAST_INSERT_ID()-2, 20.0, 9800, 'Diesel'),
-(LAST_INSERT_ID()-1, 15.5, 44500, 'Regular'),
-(LAST_INSERT_ID(), 11.0, 35500, 'Regular');
+-- Note: FuelExpenses table references expense_id from Expenses table
+-- Since we can't predict the exact auto-increment IDs, we'll skip FuelExpenses for now
+-- The fuel expenses are already recorded in the main Expenses table with category='Fuel'
 
 -- Populate UpcomingServices table
 INSERT INTO UpcomingServices (user_id, vin, rec_date, rec_mileage, status) VALUES

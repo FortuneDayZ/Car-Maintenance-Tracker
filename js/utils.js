@@ -357,6 +357,208 @@ const Utils = {
     }
 };
 
+// Enhanced logging system for database test errors
+const LoggingSystem = {
+    logFile: 'database_test_errors.log',
+    
+    // Log error to file and optionally display in frontend
+    logError: async (error, context = '', displayInFrontend = true) => {
+        const timestamp = new Date().toISOString();
+        const logEntry = {
+            timestamp: timestamp,
+            context: context,
+            error: error.message || error,
+            stack: error.stack,
+            userAgent: navigator.userAgent,
+            url: window.location.href
+        };
+        
+        // Log to console for immediate debugging
+        console.error(`[${timestamp}] ${context}:`, error);
+        
+        // Log to file via backend
+        try {
+            const response = await fetch('/api/log-error', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(logEntry)
+            });
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Failed to log error to backend:', errorText);
+            }
+        } catch (logError) {
+            console.error('Failed to write to log file:', logError);
+        }
+        
+        // Display in frontend if requested
+        if (displayInFrontend) {
+            Utils.showAlert(`Error: ${error.message || error}`, 'danger');
+        }
+        
+        return logEntry;
+    },
+    
+    // Log database test specific errors
+    logDatabaseTestError: async (error, testType = '', sqlQuery = '') => {
+        const context = `Database Test - ${testType}`;
+        const enhancedError = {
+            message: error.message || error,
+            stack: error.stack,
+            sqlQuery: sqlQuery,
+            testType: testType
+        };
+        
+        return await LoggingSystem.logError(enhancedError, context, true);
+    },
+    
+    // Log SQL execution errors
+    logSQLExecutionError: async (error, sqlStatement = '', statementIndex = null) => {
+        const context = `SQL Execution${statementIndex !== null ? ` - Statement ${statementIndex + 1}` : ''}`;
+        const enhancedError = {
+            message: error.message || error,
+            stack: error.stack,
+            sqlStatement: sqlStatement,
+            statementIndex: statementIndex
+        };
+        
+        return await LoggingSystem.logError(enhancedError, context, true);
+    },
+    
+    // Get log file contents (for admin viewing)
+    getLogContents: async () => {
+        try {
+            const response = await fetch('/api/get-logs');
+            
+            if (response.ok) {
+                return await response.text();
+            } else {
+                const errorText = await response.text();
+                console.error('Server response error:', errorText);
+                throw new Error(`Server error: ${response.status} ${response.statusText}`);
+            }
+        } catch (error) {
+            console.error('Error fetching log contents:', error);
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                throw new Error('Network error: Unable to connect to the server. Please check if the backend is running.');
+            }
+            throw error;
+        }
+    },
+    
+    // Clear log file
+    clearLogs: async () => {
+        try {
+            const response = await fetch('/api/clear-logs', { method: 'POST' });
+            if (response.ok) {
+                Utils.showAlert('Log file cleared successfully', 'success');
+            } else {
+                throw new Error('Failed to clear log file');
+            }
+        } catch (error) {
+            console.error('Error clearing log file:', error);
+            Utils.showAlert(`Error clearing log file: ${error.message}`, 'danger');
+        }
+    },
+    
+    // Display log contents in a modal
+    showLogs: async () => {
+        try {
+            const logContents = await LoggingSystem.getLogContents();
+            const modal = `
+                <div class="modal fade" id="logModal" tabindex="-1">
+                    <div class="modal-dialog modal-xl">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">
+                                    <i class="fas fa-file-alt"></i> Database Test Error Logs
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="d-flex justify-content-between mb-3">
+                                    <button class="btn btn-secondary" onclick="LoggingSystem.clearLogs()">
+                                        <i class="fas fa-trash"></i> Clear Logs
+                                    </button>
+                                    <button class="btn btn-primary" onclick="LoggingSystem.downloadLogs()">
+                                        <i class="fas fa-download"></i> Download Logs
+                                    </button>
+                                </div>
+                                <div class="log-content" style="max-height: 500px; overflow-y: auto; background: #f8f9fa; padding: 15px; border-radius: 5px; font-family: monospace; font-size: 12px; white-space: pre-wrap;">
+                                    ${logContents || 'No errors logged yet.'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remove existing modal if any
+            const existingModal = document.getElementById('logModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            // Add modal to body
+            document.body.insertAdjacentHTML('beforeend', modal);
+            
+            // Show modal
+            const modalInstance = new bootstrap.Modal(document.getElementById('logModal'));
+            modalInstance.show();
+            
+        } catch (error) {
+            console.error('Error in showLogs:', error);
+            let errorMessage = `Error displaying logs: ${error.message}`;
+            
+            if (error.message.includes('Network error')) {
+                errorMessage = 'Unable to connect to the server. Please check if the backend is running on port 3000.';
+            } else if (error.message.includes('Server error: 404')) {
+                errorMessage = 'Logging endpoint not found. Please restart the backend server.';
+            } else if (error.message.includes('Server error: 500')) {
+                errorMessage = 'Server error occurred while reading logs. Please check the backend console.';
+            }
+            
+            Utils.showAlert(errorMessage, 'danger');
+        }
+    },
+    
+    // Download log file
+    downloadLogs: async () => {
+        try {
+            const logContents = await LoggingSystem.getLogContents();
+            const blob = new Blob([logContents], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `database_test_errors_${new Date().toISOString().split('T')[0]}.log`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            Utils.showAlert(`Error downloading logs: ${error.message}`, 'danger');
+        }
+    }
+};
+
+// Make LoggingSystem available globally
+window.LoggingSystem = LoggingSystem;
+
+// Add a simple test function that can be called from anywhere
+window.testLoggingFromAnywhere = async () => {
+    try {
+        console.log('Running simple logging test...');
+        const testError = new Error('Simple logging test from main application');
+        await LoggingSystem.logError(testError, 'Simple Test', false);
+        Utils.showAlert('Simple logging test completed successfully!', 'success');
+    } catch (error) {
+        console.error('Simple logging test failed:', error);
+        Utils.showAlert(`Simple logging test failed: ${error.message}`, 'danger');
+    }
+};
+
 // Initialize modal manager when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     Utils.ModalManager.init();

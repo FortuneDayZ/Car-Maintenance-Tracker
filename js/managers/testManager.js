@@ -25,6 +25,8 @@ const testManager = {
             return { isAdmin: adminCheck[0].is_admin === 1, error: null };
         } catch (error) {
             console.error('Error checking admin status:', error);
+            // Log admin status check errors
+            await LoggingSystem.logDatabaseTestError(error, 'Admin Status Check', `SELECT is_admin FROM Users WHERE user_id = ${AuthManager.currentUser.user_id}`);
             return { isAdmin: false, error: error.message };
         }
     },
@@ -157,11 +159,19 @@ const testManager = {
                     <button class="btn btn-secondary" onclick="testManager.explainSQLErrors()">
                         <i class="fas fa-question-circle"></i> Explain SQL Errors
                     </button>
+                    <button class="btn btn-dark" onclick="LoggingSystem.showLogs()">
+                        <i class="fas fa-file-alt"></i> View Error Logs
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="testManager.testLoggingSystem()">
+                        <i class="fas fa-vial"></i> Test Logging
+                    </button>
                 </div>
             `;
             
             testManager.container.innerHTML = table;
         } catch (error) {
+            // Log render errors
+            await LoggingSystem.logDatabaseTestError(error, 'Test Manager Render', 'Database connection and data loading');
             testManager.container.innerHTML = `
                 <div class="alert alert-danger">
                     <h4><i class="fas fa-exclamation-triangle"></i> Error Loading Data</h4>
@@ -189,6 +199,8 @@ const testManager = {
                 Utils.showAlert('Database connection failed!', 'danger');
             }
         } catch (error) {
+            // Log connection test errors
+            await LoggingSystem.logDatabaseTestError(error, 'Connection Test', 'Database connection test');
             Utils.showAlert(`Connection test failed: ${error.message}`, 'danger');
         }
     },
@@ -209,6 +221,8 @@ const testManager = {
             const results = await Database.executeQuery(query);
             alert(`Query executed successfully!\nRows returned: ${results.length}\n\nResults:\n${JSON.stringify(results, null, 2)}`);
         } catch (error) {
+            // Log custom query errors
+            await LoggingSystem.logDatabaseTestError(error, 'Custom Query', query);
             alert(`Query failed: ${error.message}`);
         }
     },
@@ -381,6 +395,9 @@ const testManager = {
                         const errorMsg = `Statement ${i + 1}: ${error.message}`;
                         errors.push(errorMsg);
                         console.error(errorMsg);
+                        
+                        // Log error to file using the new logging system
+                        await LoggingSystem.logSQLExecutionError(error, statement, i);
                     }
                 }
                 
@@ -433,6 +450,8 @@ const testManager = {
             }, 2000);
 
         } catch (error) {
+            // Log the main error to file
+            await LoggingSystem.logDatabaseTestError(error, 'SQL File Execution', 'File upload and execution');
             Utils.showAlert(`Error executing SQL file: ${error.message}`, 'danger');
         }
     },
@@ -509,6 +528,8 @@ const testManager = {
             testManager.render();
         } catch (error) {
             console.error("Error inserting sample data:", error);
+            // Log sample data insertion errors
+            await LoggingSystem.logDatabaseTestError(error, 'Sample Data Insertion', 'Bulk sample data insertion');
             Utils.showAlert(`Error inserting sample data: ${error.message}`, "danger");
         }
     },    showClearDataConfirmation: async () => {
@@ -625,6 +646,8 @@ const testManager = {
             }
         } catch (error) {
             console.error('Error clearing data:', error);
+            // Log data clearing errors
+            await LoggingSystem.logDatabaseTestError(error, 'Data Clearing', 'Bulk data deletion operation');
             throw new Error(`Failed to clear data: ${error.message}`);
         }
     },
@@ -692,6 +715,8 @@ const testManager = {
                 window.location.reload();
             }, 1500);
         } catch (error) {
+            // Log admin restoration errors
+            await LoggingSystem.logDatabaseTestError(error, 'Admin Restoration', 'Admin user creation/restoration');
             Utils.showAlert(`Error restoring admin user: ${error.message}`, 'danger');
         }
     },
@@ -718,6 +743,8 @@ const testManager = {
                 }
             } catch (error) {
                 console.error('Error checking admin status:', error);
+                // Log debug admin status errors
+                await LoggingSystem.logDatabaseTestError(error, 'Debug Admin Status', 'Admin status debugging query');
             }
         }
         console.log('=== End Debug ===');
@@ -750,6 +777,27 @@ const testManager = {
         });
 
         Utils.showAlert(explanationText, 'info');
+    },
+
+    // Test function to verify logging system is working
+    testLoggingSystem: async () => {
+        try {
+            // Test basic error logging
+            const testError = new Error('This is a test error for the logging system');
+            await LoggingSystem.logError(testError, 'Logging System Test', false);
+            
+            // Test database test error logging
+            const dbTestError = new Error('Test database connection error');
+            await LoggingSystem.logDatabaseTestError(dbTestError, 'Test Database Connection', 'SELECT 1');
+            
+            // Test SQL execution error logging
+            const sqlError = new Error('Test SQL execution error');
+            await LoggingSystem.logSQLExecutionError(sqlError, 'SELECT * FROM nonexistent_table', 0);
+            
+            Utils.showAlert('Logging system test completed! Check the error logs to see the test entries.', 'success');
+        } catch (error) {
+            Utils.showAlert(`Logging system test failed: ${error.message}`, 'danger');
+        }
     }
 };
 
