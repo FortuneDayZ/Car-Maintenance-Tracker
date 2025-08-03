@@ -339,7 +339,7 @@ const testManager = {
                     <li>All user data (except admin accounts)</li>
                     <li>All vehicle information</li>
                     <li>All service records</li>
-                    <li>All maintenance events</li>
+                    <li>All upcoming services</li>
                     <li>All expenses and fuel logs</li>
                     <li>All parts and mechanics data</li>
                     <li>All shop information</li>

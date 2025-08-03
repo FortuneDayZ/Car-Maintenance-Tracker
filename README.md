@@ -52,7 +52,7 @@
 
 - **User Management**: Create accounts, manage vehicles
 - **Vehicle Tracking**: Service records, fuel logs, expenses
-- **Maintenance**: Schedule reminders, track service history
+- **Upcoming Services**: Schedule reminders, track service history
 - **Analytics**: Cost summaries, fuel statistics
 - **Database Tools**: Raw SQL execution, file uploads (admin only)
 

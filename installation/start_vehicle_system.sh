@@ -417,7 +417,7 @@ EOF
         print_status "   • Vehicle Management"
         print_status "   • User Management"
         print_status "   • Service Records"
-        print_status "   • Maintenance Scheduling"
+        print_status "   • Upcoming Services Scheduling"
         print_status "   • Expense Tracking"
         print_status "   • Fuel Logging"
         print_status "   • Reminder System"

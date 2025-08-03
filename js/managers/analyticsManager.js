@@ -34,8 +34,8 @@ const analyticsManager = {
             // 5. Total Cost Summary (SUM with multiple joins)
             const totalCostSummary = await analyticsManager.getTotalCostSummary(userId, isAdmin);
             
-            // 6. Maintenance Events by Status (COUNT with GROUP BY)
-            const maintenanceByStatus = await analyticsManager.getMaintenanceByStatus(userId, isAdmin);
+                    // 6. Upcoming Services by Status (COUNT with GROUP BY)
+        const maintenanceByStatus = await analyticsManager.getMaintenanceByStatus(userId, isAdmin);
 
             const analyticsHTML = `
                 <div class="row">
@@ -236,7 +236,7 @@ const analyticsManager = {
                     <div class="col-md-6 mb-4">
                         <div class="card">
                             <div class="card-header">
-                                <h5><i class="fas fa-tools"></i> Maintenance Events by Status (COUNT with GROUP BY)</h5>
+                                <h5><i class="fas fa-tools"></i> Upcoming Services by Status (COUNT with GROUP BY)</h5>
                             </div>
                             <div class="card-body">
                                 <div class="table-responsive">
@@ -463,8 +463,8 @@ const analyticsManager = {
         };
     },
 
-    // 6. COUNT with GROUP BY - Maintenance Events by Status
-    getMaintenanceByStatus: async (userId, isAdmin) => {
+            // 6. COUNT with GROUP BY - Upcoming Services by Status
+        getMaintenanceByStatus: async (userId, isAdmin) => {
         try {
             let totalCountResult, sql;
             
@@ -512,7 +512,7 @@ const analyticsManager = {
             
             return await Database.select(sql);
         } catch (error) {
-            console.error('Error getting maintenance by status:', error);
+            console.error('Error getting upcoming services by status:', error);
             return [];
         }
     },
@@ -577,8 +577,8 @@ const analyticsManager = {
             });
             csvContent += '\n';
 
-            // Maintenance by Status
-            csvContent += 'MAINTENANCE EVENTS BY STATUS\n';
+                    // Upcoming Services by Status
+        csvContent += 'UPCOMING SERVICES BY STATUS\n';
             csvContent += 'Status,Count,Percentage\n';
             maintenanceByStatus.forEach(item => {
                 csvContent += `${item.status},${item.count},${item.percentage}%\n`;
@@ -639,8 +639,8 @@ const analyticsManager = {
             });
             csvContent += '\n';
 
-            // Maintenance Events Data
-            csvContent += 'MAINTENANCE EVENTS DETAILED DATA\n';
+                    // Upcoming Services Data
+        csvContent += 'UPCOMING SERVICES DETAILED DATA\n';
             csvContent += 'ID,Vehicle,User,Date,Mileage,Status,Description\n';
             detailedData.maintenanceEvents.forEach(event => {
                 const vehicle = event.make && event.model && event.year ? 

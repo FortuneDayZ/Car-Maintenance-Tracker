@@ -1,4 +1,4 @@
-// Maintenance Events Manager
+// Upcoming Services Manager
 const maintenanceManager = {
     container: null,
     reminderCheckInterval: null,
@@ -31,6 +31,7 @@ const maintenanceManager = {
                 LEFT JOIN Vehicles v ON me.vin = v.vin
                 WHERE r.send_date = '${today}' 
                 AND r.was_sent = 0
+                AND r.was_read = 0
                 ORDER BY r.send_date ASC
             `);
 
@@ -78,9 +79,22 @@ const maintenanceManager = {
                         <strong>Reminder:</strong><br>
                         ${reminder.message}
                     </div>
+                    <div class="mb-3">
+                        <div class="d-flex gap-2 mb-2">
+                            <span class="badge ${reminder.was_sent ? 'bg-success' : 'bg-warning'}">
+                                ${reminder.was_sent ? 'Sent' : 'Not Sent'}
+                            </span>
+                            <span class="badge ${reminder.was_read ? 'bg-info' : 'bg-secondary'}">
+                                ${reminder.was_read ? 'Read' : 'Unread'}
+                            </span>
+                        </div>
+                    </div>
                     <div class="d-flex gap-2">
-                        <button class="btn btn-success btn-sm" onclick="maintenanceManager.markReminderAsSent(${reminder.reminder_id}, this)">
-                            <i class="fas fa-check"></i> Mark as Sent
+                        <button class="btn ${reminder.was_sent ? 'btn-success disabled' : 'btn-success'} btn-sm" onclick="maintenanceManager.markReminderAsSent(${reminder.reminder_id}, this)" ${reminder.was_sent ? 'disabled' : ''}>
+                            <i class="fas fa-check"></i> ${reminder.was_sent ? 'Already Sent' : 'Mark as Sent'}
+                        </button>
+                        <button class="btn ${reminder.was_read ? 'btn-info disabled' : 'btn-info'} btn-sm" onclick="maintenanceManager.markReminderAsRead(${reminder.reminder_id}, this)" ${reminder.was_read ? 'disabled' : ''}>
+                            <i class="fas fa-eye"></i> ${reminder.was_read ? 'Already Read' : 'Mark as Read'}
                         </button>
                         <button class="btn btn-primary btn-sm" onclick="maintenanceManager.showEditReminderForm(${reminder.reminder_id})">
                             <i class="fas fa-edit"></i> Edit
@@ -134,15 +148,39 @@ const maintenanceManager = {
         }
     },
 
+    // Mark reminder as read
+    markReminderAsRead: async (reminderId, button) => {
+        try {
+            await Database.updateRecord('Reminder', { was_read: 1 }, `reminder_id = ${reminderId}`);
+            
+            // Update button
+            button.innerHTML = '<i class="fas fa-eye"></i> Read';
+            button.className = 'btn btn-info btn-sm disabled';
+            
+            // Remove popup after 2 seconds
+            setTimeout(() => {
+                const popup = button.closest('.reminder-popup');
+                if (popup) {
+                    popup.remove();
+                }
+            }, 2000);
+            
+            Utils.showAlert('Reminder marked as read', 'success');
+        } catch (error) {
+            console.error('Error marking reminder as read:', error);
+            Utils.showAlert('Error updating reminder status', 'danger');
+        }
+    },
+
     render: async () => {
         // Check if user is authenticated
         if (!AuthManager.isAuthenticated) {
-            maintenanceManager.container.innerHTML = '<div class="alert alert-warning">Please log in to view maintenance events.</div>';
+            maintenanceManager.container.innerHTML = '<div class="alert alert-warning">Please log in to view upcoming services.</div>';
             return;
         }
 
         try {
-            // Get maintenance events from database based on user permissions
+            // Get upcoming services from database based on user permissions
             let eventsToShow = [];
             if (AuthManager.isAdmin()) {
                 eventsToShow = await Database.select(`
@@ -153,7 +191,7 @@ const maintenanceManager = {
                     ORDER BY me.rec_date DESC
                 `);
             } else {
-                // Regular users can only see their own maintenance events
+                // Regular users can only see their own upcoming services
                 const userId = AuthManager.currentUser.user_id;
                 eventsToShow = await Database.select(`
                     SELECT me.*, u.username, v.make, v.model, v.year 
@@ -195,10 +233,10 @@ const maintenanceManager = {
             
             maintenanceManager.container.innerHTML = table;
         } catch (error) {
-            console.error('Error loading maintenance events:', error);
+            console.error('Error loading upcoming services:', error);
             maintenanceManager.container.innerHTML = `
                 <div class="alert alert-danger">
-                    <h4><i class="fas fa-exclamation-triangle"></i> Error Loading Maintenance Events</h4>
+                    <h4><i class="fas fa-exclamation-triangle"></i> Error Loading Upcoming Services</h4>
                     <p>${error.message}</p>
                     <button class="btn btn-primary" onclick="maintenanceManager.render()">
                         <i class="fas fa-sync"></i> Retry
@@ -213,7 +251,7 @@ const maintenanceManager = {
         const vehicle = event.make && event.model && event.year ? 
             `${event.year} ${event.make} ${event.model}` : 'Unknown Vehicle';
         
-        // Fetch service types for this maintenance event
+        // Fetch service types for this upcoming service
         let serviceTypes = [];
         try {
             const serviceTypesResult = await Database.select(`
@@ -227,7 +265,7 @@ const maintenanceManager = {
             console.error('Error fetching service types for event:', event.event_id, error);
         }
         
-        // Fetch reminders for this maintenance event
+        // Fetch reminders for this upcoming service
         let reminders = [];
         try {
             const remindersResult = await Database.select(`
@@ -271,7 +309,7 @@ const maintenanceManager = {
                 <td colspan="7">
                     <div class="card">
                         <div class="card-header">
-                            <h6>Maintenance Event Details</h6>
+                            <h6>Upcoming Service Details</h6>
                         </div>
                         <div class="card-body">
                             <div class="row">
@@ -315,14 +353,20 @@ const maintenanceManager = {
                                                         <small class="text-muted">Due: ${Utils.formatDate(reminder.send_date)}</small>
                                                     </div>
                                                     <div class="d-flex align-items-center gap-1">
-                                                                                <span class="badge ${reminder.was_sent ? 'bg-success' : 'bg-warning'}">
+                                                        <span class="badge ${reminder.was_sent ? 'bg-success' : 'bg-warning'}">
                             ${reminder.was_sent ? 'Sent' : 'Pending'}
+                        </span>
+                                                        <span class="badge ${reminder.was_read ? 'bg-info' : 'bg-secondary'}">
+                            ${reminder.was_read ? 'Read' : 'Unread'}
                         </span>
                                                         <button class="btn btn-sm btn-outline-primary" onclick="maintenanceManager.showEditReminderForm(${reminder.reminder_id})" title="Edit Reminder">
                                                             <i class="fas fa-edit"></i>
                                                         </button>
                                                         <button class="btn btn-sm btn-outline-secondary" onclick="maintenanceManager.toggleReminderStatus(${reminder.reminder_id}, ${reminder.was_sent})" title="${reminder.was_sent ? 'Mark as Pending' : 'Mark as Sent'}">
                                                             <i class="fas fa-${reminder.was_sent ? 'undo' : 'check'}"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-info" onclick="maintenanceManager.toggleReminderReadStatus(${reminder.reminder_id}, ${reminder.was_read})" title="${reminder.was_read ? 'Mark as Unread' : 'Mark as Read'}">
+                                                            <i class="fas fa-${reminder.was_read ? 'eye-slash' : 'eye'}"></i>
                                                         </button>
                                                         <button class="btn btn-sm btn-outline-danger" onclick="maintenanceManager.deleteReminder(${reminder.reminder_id})" title="Delete Reminder">
                                                             <i class="fas fa-trash"></i>
@@ -357,7 +401,7 @@ const maintenanceManager = {
 
     showAddForm: async () => {
         // Check if user is authenticated
-        if (!AuthManager.requireAuth('add maintenance events')) {
+        if (!AuthManager.requireAuth('add upcoming services')) {
             return;
         }
         try {
@@ -378,7 +422,7 @@ const maintenanceManager = {
                 // Regular users automatically use their own user ID
                 userField = `<input type="hidden" id="user_id" name="user_id" value="${AuthManager.currentUser.user_id}">`;
                 
-                // Regular users can only add maintenance events for vehicles they own
+                // Regular users can only add upcoming services for vehicles they own
                 const userId = AuthManager.currentUser.user_id;
                 vehicles = await Database.select(`
                     SELECT v.vin, v.make, v.model, v.year 
@@ -417,7 +461,7 @@ const maintenanceManager = {
             </form>
         `;
 
-        Utils.ModalManager.show('Add New Maintenance Event', formContent, () => maintenanceManager.saveMaintenance());
+        Utils.ModalManager.show('Add New Upcoming Service', formContent, () => maintenanceManager.saveMaintenance());
         } catch (error) {
             console.error('Error loading data for maintenance form:', error);
             Utils.showAlert(`Error loading form data: ${error.message}`, 'danger');
@@ -429,7 +473,7 @@ const maintenanceManager = {
             const events = await Database.select(`SELECT * FROM UpcomingServices WHERE event_id = ${eventId}`);
             const event = events[0];
             if (!event) {
-                Utils.showAlert('Maintenance event not found!', 'danger');
+                Utils.showAlert('Upcoming service not found!', 'danger');
                 return;
             }
 
@@ -443,7 +487,7 @@ const maintenanceManager = {
             if (AuthManager.isAdmin()) {
                 vehicles = await Database.select('SELECT vin, make, model, year FROM Vehicles');
             } else {
-                // Regular users can only edit maintenance events for vehicles they own
+                // Regular users can only edit upcoming services for vehicles they own
                 const userId = AuthManager.currentUser.user_id;
                 vehicles = await Database.select(`
                     SELECT v.vin, v.make, v.model, v.year 
@@ -499,7 +543,7 @@ const maintenanceManager = {
             </form>
         `;
 
-        Utils.ModalManager.show('Edit Maintenance Event', formContent, () => maintenanceManager.saveMaintenance(eventId));
+        Utils.ModalManager.show('Edit Upcoming Service', formContent, () => maintenanceManager.saveMaintenance(eventId));
         
         // Populate form with existing data after modal is shown
         Utils.populateForm({
@@ -511,8 +555,8 @@ const maintenanceManager = {
             service_types: currentServiceType
         });
         } catch (error) {
-            console.error('Error loading maintenance event for edit:', error);
-            Utils.showAlert(`Error loading maintenance event: ${error.message}`, 'danger');
+            console.error('Error loading upcoming service for edit:', error);
+            Utils.showAlert(`Error loading upcoming service: ${error.message}`, 'danger');
         }
     },
 
@@ -570,12 +614,12 @@ const maintenanceManager = {
             if (eventId) {
                 // Update existing event
                 await Database.updateRecord('UpcomingServices', maintenanceData, `event_id = ${eventId}`);
-                Utils.showAlert('Maintenance event updated successfully', 'success');
+                Utils.showAlert('Upcoming service updated successfully', 'success');
             } else {
                 // Add new event
                 const result = await Database.insertRecord('UpcomingServices', maintenanceData);
                 newEventId = result.insertId; // Get the ID of the newly inserted record
-                Utils.showAlert('Maintenance event added successfully', 'success');
+                Utils.showAlert('Upcoming service added successfully', 'success');
             }
 
             // Handle service types
@@ -594,57 +638,57 @@ const maintenanceManager = {
 
             Utils.ModalManager.hide();
             
-            // Refresh all sections that depend on maintenance event data
+            // Refresh all sections that depend on upcoming service data
             await maintenanceManager.refreshAllRelatedSections();
         } catch (error) {
-            console.error('Error saving maintenance event:', error);
-            Utils.showAlert(`Error saving maintenance event: ${error.message}`, 'danger');
+            console.error('Error saving upcoming service:', error);
+            Utils.showAlert(`Error saving upcoming service: ${error.message}`, 'danger');
         }
     },
 
-    // Refresh all sections that depend on maintenance event data
+    // Refresh all sections that depend on upcoming service data
     refreshAllRelatedSections: async () => {
         try {
             // Show loading indicator
             Utils.showAlert('Updating all related sections...', 'info');
             
-            // Refresh maintenance events section
+            // Refresh upcoming services section
             await maintenanceManager.render();
             
-            // Refresh vehicles section (since maintenance events are linked to vehicles)
+            // Refresh vehicles section (since upcoming services are linked to vehicles)
             if (window.vehiclesManager) {
                 await vehiclesManager.render();
             }
             
-            // Refresh ownership section (since maintenance affects vehicle ownership)
+            // Refresh ownership section (since upcoming services affect vehicle ownership)
             if (window.ownsManager) {
                 await ownsManager.render();
             }
             
-            // Refresh expenses section (since maintenance can be expenses)
+            // Refresh expenses section (since upcoming services can be expenses)
             if (window.expensesManager) {
                 await expensesManager.render();
             }
             
-            // Refresh service records section (since maintenance events can lead to service records)
+            // Refresh service records section (since upcoming services can lead to service records)
             if (window.servicesManager) {
                 await servicesManager.render();
             }
             
-            console.log('All maintenance event-related sections refreshed successfully');
+            console.log('All upcoming service-related sections refreshed successfully');
             
             // Show success message
             setTimeout(() => {
                 Utils.showAlert('All sections updated successfully!', 'success');
             }, 500);
         } catch (error) {
-            console.error('Error refreshing maintenance event-related sections:', error);
+            console.error('Error refreshing upcoming service-related sections:', error);
             Utils.showAlert('Error updating sections. Please refresh the page.', 'danger');
         }
     },
 
     deleteMaintenance: async (eventId) => {
-        if (!confirm('Are you sure you want to delete this maintenance event? This will also remove all associated reminders.')) {
+        if (!confirm('Are you sure you want to delete this upcoming service? This will also remove all associated reminders.')) {
             return;
         }
 
@@ -666,20 +710,20 @@ const maintenanceManager = {
             console.log('Reminder table may not exist, skipping reminder cleanup');
             }
 
-            Utils.showAlert('Maintenance event deleted successfully', 'success');
+            Utils.showAlert('Upcoming service deleted successfully', 'success');
             
-            // Refresh all sections that depend on maintenance event data
+            // Refresh all sections that depend on upcoming service data
             await maintenanceManager.refreshAllRelatedSections();
         } catch (error) {
-            console.error('Error deleting maintenance event:', error);
-            Utils.showAlert(`Error deleting maintenance event: ${error.message}`, 'danger');
+            console.error('Error deleting upcoming service:', error);
+            Utils.showAlert(`Error deleting upcoming service: ${error.message}`, 'danger');
         }
     },
 
     // Reminder Management Functions
     showAddReminderForm: async (eventId) => {
         try {
-            // Get maintenance event details for context
+            // Get upcoming service details for context
             const events = await Database.select(`SELECT me.*, v.make, v.model, v.year FROM UpcomingServices me LEFT JOIN Vehicles v ON me.vin = v.vin WHERE me.event_id = ${eventId}`);
             const event = events[0];
             
@@ -694,7 +738,7 @@ const maintenanceManager = {
             const formContent = `
                 <form id="reminderForm">
                     <div class="alert alert-info">
-                        <strong>Maintenance Event:</strong> ${vehicle}<br>
+                        <strong>Upcoming Service:</strong> ${vehicle}<br>
                         <strong>Date:</strong> ${Utils.formatDate(event.rec_date)}<br>
                         <strong>Mileage:</strong> ${event.rec_mileage.toLocaleString()}
                     </div>
@@ -713,6 +757,8 @@ const maintenanceManager = {
                             <label class="form-check-label" for="reminderSent">
                                 Mark as already sent
                             </label>
+                        </div>
+                        <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="reminderRead" name="was_read">
                             <label class="form-check-label" for="reminderRead">
                                 Mark as already read
@@ -771,7 +817,7 @@ const maintenanceManager = {
             
             Utils.ModalManager.hide();
             
-            // Refresh maintenance events to show the updated reminder
+            // Refresh upcoming services to show the updated reminder
             await maintenanceManager.render();
         } catch (error) {
             console.error('Error saving reminder:', error);
@@ -808,6 +854,21 @@ const maintenanceManager = {
         } catch (error) {
             console.error('Error updating reminder status:', error);
             Utils.showAlert(`Error updating reminder status: ${error.message}`, 'danger');
+        }
+    },
+
+    toggleReminderReadStatus: async (reminderId, currentStatus) => {
+        try {
+            const newStatus = currentStatus ? 0 : 1;
+            await Database.updateRecord('Reminder', { was_read: newStatus }, `reminder_id = ${reminderId}`);
+            
+            Utils.showAlert(`Reminder marked as ${newStatus ? 'read' : 'unread'}`, 'success');
+            
+            // Refresh maintenance events to update the display
+            await maintenanceManager.render();
+        } catch (error) {
+            console.error('Error updating reminder read status:', error);
+            Utils.showAlert(`Error updating reminder read status: ${error.message}`, 'danger');
         }
     },
 

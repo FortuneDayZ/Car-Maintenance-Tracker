@@ -96,7 +96,7 @@ const usersManager = {
             console.error(`Error fetching vehicles for user ${user.user_id}:`, error);
         }
 
-        // Fetch user's maintenance events with vehicle info
+        // Fetch user's upcoming services with vehicle info
         let maintenanceEvents = [];
         try {
             maintenanceEvents = await Database.select(`
@@ -107,7 +107,7 @@ const usersManager = {
                 ORDER BY me.rec_date DESC
             `);
         } catch (error) {
-            console.error(`Error fetching maintenance events for user ${user.user_id}:`, error);
+            console.error(`Error fetching upcoming services for user ${user.user_id}:`, error);
         }
         
         return `
@@ -158,7 +158,7 @@ const usersManager = {
                                     ` : '<p class="text-muted">No vehicles owned</p>'}
                                 </div>
                                 <div class="col-md-6">
-                                    <h6>Maintenance Events (${maintenanceEvents.length})</h6>
+                                    <h6>Upcoming Services (${maintenanceEvents.length})</h6>
                                     ${maintenanceEvents.length > 0 ? `
                                         <ul class="list-group list-group-flush">
                                             ${maintenanceEvents.map(event => `
@@ -168,7 +168,7 @@ const usersManager = {
                                                 </li>
                                             `).join('')}
                                         </ul>
-                                    ` : '<p class="text-muted">No maintenance events</p>'}
+                                    ` : '<p class="text-muted">No upcoming services</p>'}
                                 </div>
                             </div>
                         </div>

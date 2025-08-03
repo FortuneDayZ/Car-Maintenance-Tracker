@@ -740,14 +740,14 @@ const AuthManager = {
         }
     },
 
-    // Get user's maintenance events
+    // Get user's upcoming services
     getUserMaintenanceEvents: async () => {
         if (!AuthManager.isAuthenticated) return [];
         if (AuthManager.isAdmin()) {
             try {
                 return await Database.select('SELECT * FROM UpcomingServices ORDER BY rec_date DESC');
             } catch (error) {
-                console.error('Error getting all maintenance events:', error);
+                console.error('Error getting all upcoming services:', error);
                 return [];
             }
         }
@@ -759,7 +759,7 @@ const AuthManager = {
                 ORDER BY rec_date DESC
             `);
         } catch (error) {
-            console.error('Error getting user maintenance events:', error);
+            console.error('Error getting user upcoming services:', error);
             return [];
         }
     }

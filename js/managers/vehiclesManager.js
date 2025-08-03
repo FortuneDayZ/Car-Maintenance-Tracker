@@ -382,7 +382,7 @@ const vehiclesManager = {
                 await servicesManager.render();
             }
             
-            // Refresh maintenance events section
+            // Refresh upcoming services section
             if (window.maintenanceManager) {
                 await maintenanceManager.render();
             }

@@ -311,7 +311,7 @@ const mechanicsManager = {
                 await servicesManager.render();
             }
             
-            // Refresh maintenance events section (if mechanics are involved)
+            // Refresh upcoming services section (if mechanics are involved)
             if (window.maintenanceManager) {
                 await maintenanceManager.render();
             }
