@@ -187,3 +187,16 @@ CREATE TABLE Reminder (
     FOREIGN KEY (event_id) REFERENCES UpcomingServices(event_id) 
         ON UPDATE CASCADE ON DELETE CASCADE
 )
+
+CREATE INDEX idx_make_model ON Vehicles(make, model);
+CREATE INDEX idx_city_state ON CarShops(city, state);
+CREATE INDEX idx_mechanic_carshop ON Mechanics(car_shop_id);
+CREATE INDEX idx_vin_service_date ON ServiceRecords(vin, service_date);
+CREATE INDEX idx_service_only ON WorkedOn(service_id);
+CREATE INDEX idx_service_type ON ServiceRecords_ServiceTypes(service_type);
+CREATE INDEX idx_part_name ON Parts(name);
+CREATE INDEX idx_part_id_only ON ServiceRecords_Parts(part_id);
+CREATE INDEX idx_vin_date ON Expenses(vin, date);
+CREATE INDEX idx_user_vin_status ON UpcomingServices(user_id, vin, status);
+CREATE INDEX idx_service_type_only ON UpcomingServices_ServiceTypes(service_type);
+CREATE INDEX idx_send_status ON Reminder(send_date, was_sent);
