@@ -5,13 +5,13 @@ USE `Final`;
 
 -- Drop junction tables first (they reference other tables)
 DROP TABLE IF EXISTS `Reminder`;
-DROP TABLE IF EXISTS `MaintenanceEvents_ServiceTypes`;
+DROP TABLE IF EXISTS `UpcomingServices_ServiceTypes`;
 DROP TABLE IF EXISTS `ServiceRecords_Parts`;
 DROP TABLE IF EXISTS `ServiceRecords_ServiceTypes`;
 DROP TABLE IF EXISTS `WorkedOn`;
 
 -- Drop dependent tables (tables that reference other tables)
-DROP TABLE IF EXISTS `MaintenanceEvents`;
+DROP TABLE IF EXISTS `UpcomingServices`;
 DROP TABLE IF EXISTS `FuelLog`;
 DROP TABLE IF EXISTS `Expenses`;
 DROP TABLE IF EXISTS `Parts`;

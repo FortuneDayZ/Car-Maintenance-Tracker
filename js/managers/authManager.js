@@ -35,11 +35,11 @@ const AuthManager = {
                     user_id: userData.user_id,
                     username: userData.username,
                     email: userData.email,
-                    role: userData.role || (userData.username === 'admin' ? 'admin' : 'user')
+                    role: userData.role || (userData.is_admin === 1 ? 'admin' : 'user')
                 };
                 
-                // Ensure admin role is set correctly for admin user
-                if (AuthManager.currentUser.username === 'admin') {
+                // Ensure admin role is set correctly based on database field
+                if (AuthManager.currentUser.role === 'admin') {
                     AuthManager.currentUser.role = 'admin';
                 }
                 AuthManager.isAuthenticated = true;
@@ -292,11 +292,11 @@ const AuthManager = {
                     user_id: user.user_id,
                     username: user.username,
                     email: user.email,
-                    role: user.username === 'admin' ? 'admin' : 'user'
+                    role: user.is_admin === 1 ? 'admin' : 'user'
                 };
                 
-                // Ensure admin role is set correctly for admin user
-                if (AuthManager.currentUser.username === 'admin') {
+                // Ensure admin role is set correctly based on database field
+                if (AuthManager.currentUser.role === 'admin') {
                     AuthManager.currentUser.role = 'admin';
                 }
                 
@@ -581,7 +581,7 @@ const AuthManager = {
     isAdmin: () => {
         const isAdmin = AuthManager.isAuthenticated && 
                        AuthManager.currentUser && 
-                       (AuthManager.currentUser.role === 'admin' || AuthManager.currentUser.username === 'admin');
+                       AuthManager.currentUser.role === 'admin';
         
         // Debug logging
         console.log('isAdmin check:', {
@@ -597,8 +597,7 @@ const AuthManager = {
 
     // Force refresh admin status (useful for debugging)
     refreshAdminStatus: () => {
-        if (AuthManager.currentUser && AuthManager.currentUser.username === 'admin') {
-            AuthManager.currentUser.role = 'admin';
+        if (AuthManager.currentUser && AuthManager.currentUser.role === 'admin') {
             sessionStorage.setItem('currentUser', JSON.stringify(AuthManager.currentUser));
             console.log('Admin status refreshed');
         }
@@ -738,7 +737,7 @@ const AuthManager = {
         if (!AuthManager.isAuthenticated) return [];
         if (AuthManager.isAdmin()) {
             try {
-                return await Database.select('SELECT * FROM MaintenanceEvents ORDER BY rec_date DESC');
+                return await Database.select('SELECT * FROM UpcomingServices ORDER BY rec_date DESC');
             } catch (error) {
                 console.error('Error getting all maintenance events:', error);
                 return [];
@@ -747,7 +746,7 @@ const AuthManager = {
         
         try {
             return await Database.select(`
-                SELECT * FROM MaintenanceEvents 
+                SELECT * FROM UpcomingServices 
                 WHERE user_id = ${AuthManager.currentUser.user_id}
                 ORDER BY rec_date DESC
             `);

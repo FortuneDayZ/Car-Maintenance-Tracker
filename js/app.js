@@ -202,7 +202,7 @@ const App = {
             expenses: dataStore.expenses,
             fuelLog: dataStore.fuelLog,
             maintenanceEvents: dataStore.maintenanceEvents,
-            maintenanceEvents_ServiceTypes: dataStore.maintenanceEvents_ServiceTypes,
+            upcomingServices_ServiceTypes: dataStore.upcomingServices_ServiceTypes,
             reminder: dataStore.reminder
         };
 

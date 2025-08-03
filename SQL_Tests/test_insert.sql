@@ -560,8 +560,8 @@ INSERT INTO FuelLog (vin, date_filled, current_mileage, gallons, total_cost, fue
 ('VIN141', '2023-06-20', 35500, 11.0, 44.00, 'Regular');
 -- Note: FuelLog might not apply to electric vehicles like the Tesla Model S.
 
--- Populate MaintenanceEvents table
-INSERT INTO MaintenanceEvents (user_id, vin, rec_date, rec_mileage, status) VALUES
+-- Populate UpcomingServices table
+INSERT INTO UpcomingServices (user_id, vin, rec_date, rec_mileage, status) VALUES
 (1, '1ABC123XYZ4567890', '2023-07-10', 30000, 'Upcoming'),
 (2, '2DEF456ABC7890123', '2023-08-15', 40000, 'Scheduled'),
 (3, '3GHI789DEF0123456', '2023-09-20', 20000, 'Completed'),
@@ -569,8 +569,8 @@ INSERT INTO MaintenanceEvents (user_id, vin, rec_date, rec_mileage, status) VALU
 (5, '5MNO345JKL6789012', '2023-11-12', 60000, 'Overdue'),
 (150, 'VIN150', '2024-01-01', 12000, 'Upcoming');
 
--- Populate MaintenanceEvents_ServiceTypes table
-INSERT INTO MaintenanceEvents_ServiceTypes (event_id, service_type) VALUES
+-- Populate UpcomingServices_ServiceTypes table
+INSERT INTO UpcomingServices_ServiceTypes (event_id, service_type) VALUES
 (1, 'Oil Change'),
 (1, 'Tire Rotation'),
 (2, 'Brake Service'),

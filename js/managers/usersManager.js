@@ -101,7 +101,7 @@ const usersManager = {
         try {
             maintenanceEvents = await Database.select(`
                 SELECT me.*, CONCAT(v.year, ' ', v.make, ' ', v.model) as vehicle_info
-                FROM MaintenanceEvents me
+                FROM UpcomingServices me
                 LEFT JOIN Vehicles v ON me.vin = v.vin
                 WHERE me.user_id = ${user.user_id}
                 ORDER BY me.rec_date DESC
@@ -209,9 +209,9 @@ const usersManager = {
                     <label>User Type</label>
                     <select class="form-control" name="user_type" id="user_type">
                         <option value="regular">Regular User</option>
-                        <option value="admin">Administrator (username will be set to 'admin')</option>
+                        <option value="admin">Administrator</option>
                     </select>
-                    <small class="form-text text-muted">Note: Admin users must have username 'admin'. Only one admin user can exist.</small>
+                    <small class="form-text text-muted">Note: Only one admin user can exist in the system.</small>
                 </div>
             </form>
         `;
@@ -356,12 +356,11 @@ const usersManager = {
                 let finalUsername = username;
                 if (userType === 'admin') {
                     // Check if admin user already exists
-                    const existingAdmin = await Database.select('SELECT user_id FROM Users WHERE username = "admin"');
+                    const existingAdmin = await Database.select('SELECT user_id FROM Users WHERE is_admin = 1');
                     if (existingAdmin.length > 0) {
                         Utils.showAlert('Admin user already exists. Only one admin user is allowed.', 'warning');
                         return;
                     }
-                    finalUsername = 'admin';
                 }
                 
                 const userData = {
@@ -369,7 +368,8 @@ const usersManager = {
                     email: email,
                     password_hash: btoa(password).substring(0, 8).padEnd(60, '='),
                     birthday: birthday,
-                    registration_date: registrationDate
+                    registration_date: registrationDate,
+                    is_admin: userType === 'admin' ? 1 : 0
                 };
                 
                 await Database.insertRecord('Users', userData);

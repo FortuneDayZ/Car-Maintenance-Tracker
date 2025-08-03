@@ -213,8 +213,8 @@ const testManager = {
         // List of tables to drop (excluding any admin-related tables)
         const tablesToDrop = [
             'Reminder',
-            'MaintenanceEvents_ServiceTypes',
-            'MaintenanceEvents',
+            'UpcomingServices_ServiceTypes',
+'UpcomingServices',
             'FuelLog',
             'Expenses',
             'ServiceRecords_Parts',
@@ -360,7 +360,7 @@ const testManager = {
                     FOREIGN KEY (vin) REFERENCES Vehicles(vin)
                         ON UPDATE CASCADE ON DELETE CASCADE
                 )`,
-                `CREATE TABLE MaintenanceEvents (
+                `CREATE TABLE UpcomingServices (
                     event_id INT AUTO_INCREMENT PRIMARY KEY,
                     user_id INT NOT NULL,
                     vin VARCHAR(17) NOT NULL,
@@ -372,11 +372,11 @@ const testManager = {
                     FOREIGN KEY (vin) REFERENCES Vehicles(vin)
                         ON UPDATE CASCADE ON DELETE CASCADE
                 )`,
-                `CREATE TABLE MaintenanceEvents_ServiceTypes (
+                `CREATE TABLE UpcomingServices_ServiceTypes (
                     event_id INT,
                     service_type VARCHAR(50),
                     PRIMARY KEY (event_id, service_type),
-                    FOREIGN KEY (event_id) REFERENCES MaintenanceEvents(event_id) 
+                    FOREIGN KEY (event_id) REFERENCES UpcomingServices(event_id) 
                         ON UPDATE CASCADE ON DELETE CASCADE,
                     FOREIGN KEY (service_type) REFERENCES ServiceTypes(service_type) 
                         ON UPDATE CASCADE ON DELETE CASCADE
@@ -388,7 +388,7 @@ const testManager = {
                     send_date DATE NOT NULL,
                     is_sent BOOLEAN NOT NULL,
                     PRIMARY KEY (reminder_id, event_id),
-                    FOREIGN KEY (event_id) REFERENCES MaintenanceEvents(event_id) 
+                    FOREIGN KEY (event_id) REFERENCES UpcomingServices(event_id) 
                         ON UPDATE CASCADE ON DELETE CASCADE
                 )`
             ];

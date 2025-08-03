@@ -8,13 +8,13 @@ SET SQL_SAFE_UPDATES = 0;
 
 -- Clear junction tables first (they reference other tables)
 DELETE FROM `Reminder`;
-DELETE FROM `MaintenanceEvents_ServiceTypes`;
+DELETE FROM `UpcomingServices_ServiceTypes`;
 DELETE FROM `ServiceRecords_Parts`;
 DELETE FROM `ServiceRecords_ServiceTypes`;
 DELETE FROM `WorkedOn`;
 
 -- Clear dependent tables (tables that reference other tables)
-DELETE FROM `MaintenanceEvents`;
+DELETE FROM `UpcomingServices`;
 DELETE FROM `FuelLog`;
 DELETE FROM `Expenses`;
 DELETE FROM `Parts`;
@@ -39,7 +39,7 @@ ALTER TABLE `ServiceRecords` AUTO_INCREMENT = 1;
 ALTER TABLE `Parts` AUTO_INCREMENT = 1;
 ALTER TABLE `Expenses` AUTO_INCREMENT = 1;
 ALTER TABLE `FuelLog` AUTO_INCREMENT = 1;
-ALTER TABLE `MaintenanceEvents` AUTO_INCREMENT = 1;
+ALTER TABLE `UpcomingServices` AUTO_INCREMENT = 1;
 ALTER TABLE `Reminder` AUTO_INCREMENT = 1;
 
 -- Verify tables are empty
@@ -61,6 +61,6 @@ SELECT 'Expenses', COUNT(*) FROM Expenses
 UNION ALL
 SELECT 'FuelLog', COUNT(*) FROM FuelLog
 UNION ALL
-SELECT 'MaintenanceEvents', COUNT(*) FROM MaintenanceEvents
+SELECT 'UpcomingServices', COUNT(*) FROM UpcomingServices
 UNION ALL
 SELECT 'Reminder', COUNT(*) FROM Reminder; 

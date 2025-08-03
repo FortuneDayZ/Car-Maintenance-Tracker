@@ -208,7 +208,7 @@ EOF
                 print_success "Database 'Final' exists"
                 
                 # Check if admin user exists
-                admin_exists=$(mysql --defaults-file="$MYSQL_CONFIG_FILE" $MYSQL_DATABASE -e "SELECT COUNT(*) FROM Users WHERE username = 'admin';" -s -N 2>/dev/null)
+                admin_exists=$(mysql --defaults-file="$MYSQL_CONFIG_FILE" $MYSQL_DATABASE -e "SELECT COUNT(*) FROM Users WHERE is_admin = 1;" -s -N 2>/dev/null)
                 if [ "$admin_exists" = "1" ]; then
                     print_success "Admin user exists"
                 else

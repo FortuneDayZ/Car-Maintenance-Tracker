@@ -2,7 +2,7 @@
 -- This will trigger a popup notification when the page loads
 
 -- First, make sure we have a maintenance event
-INSERT IGNORE INTO MaintenanceEvents (event_id, user_id, vin, rec_date, rec_mileage, status) 
+INSERT IGNORE INTO UpcomingServices (event_id, user_id, vin, rec_date, rec_mileage, status) 
 VALUES (999, 1, '1HGBH41JXMN109186', CURDATE(), 50000, 'pending');
 
 -- Add a reminder that's due today

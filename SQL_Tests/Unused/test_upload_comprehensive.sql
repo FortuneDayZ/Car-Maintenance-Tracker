@@ -74,21 +74,21 @@ FROM Vehicles v
 WHERE v.vin = 'TEST1234567890123';
 
 -- Statement 15: Insert a maintenance event
-INSERT INTO MaintenanceEvents (user_id, vin, rec_date, rec_mileage, status) 
+INSERT INTO UpcomingServices (user_id, vin, rec_date, rec_mileage, status) 
 SELECT u.user_id, v.vin, NOW(), 50000, 'Scheduled'
 FROM Users u, Vehicles v 
 WHERE u.username = 'testuser1' AND v.vin = 'TEST1234567890123';
 
 -- Statement 16: Insert maintenance event service type relationship
-INSERT INTO MaintenanceEvents_ServiceTypes (event_id, service_type) 
+INSERT INTO UpcomingServices_ServiceTypes (event_id, service_type) 
 SELECT me.event_id, st.service_type
-FROM MaintenanceEvents me, ServiceTypes st
+FROM UpcomingServices me, ServiceTypes st
 WHERE me.status = 'Scheduled' AND st.service_type = 'Test Service';
 
 -- Statement 17: Insert a reminder
 INSERT INTO Reminder (event_id, message, send_date, is_sent) 
 SELECT me.event_id, 'Test reminder message', NOW(), FALSE
-FROM MaintenanceEvents me
+FROM UpcomingServices me
 WHERE me.status = 'Scheduled';
 
 -- Statement 18: Insert a part

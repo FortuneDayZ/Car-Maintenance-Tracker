@@ -27,7 +27,7 @@ const maintenanceManager = {
             const dueReminders = await Database.select(`
                 SELECT r.*, me.rec_date, me.rec_mileage, v.make, v.model, v.year
                 FROM Reminder r
-                JOIN MaintenanceEvents me ON r.event_id = me.event_id
+                JOIN UpcomingServices me ON r.event_id = me.event_id
                 LEFT JOIN Vehicles v ON me.vin = v.vin
                 WHERE r.send_date = '${today}' 
                 AND r.is_sent = 0
@@ -147,7 +147,7 @@ const maintenanceManager = {
             if (AuthManager.isAdmin()) {
                 eventsToShow = await Database.select(`
                     SELECT me.*, u.username, v.make, v.model, v.year 
-                    FROM MaintenanceEvents me
+                    FROM UpcomingServices me
                     LEFT JOIN Users u ON me.user_id = u.user_id
                     LEFT JOIN Vehicles v ON me.vin = v.vin
                     ORDER BY me.rec_date DESC
@@ -157,7 +157,7 @@ const maintenanceManager = {
                 const userId = AuthManager.currentUser.user_id;
                 eventsToShow = await Database.select(`
                     SELECT me.*, u.username, v.make, v.model, v.year 
-                    FROM MaintenanceEvents me
+                    FROM UpcomingServices me
                     LEFT JOIN Users u ON me.user_id = u.user_id
                     LEFT JOIN Vehicles v ON me.vin = v.vin
                     WHERE me.user_id = ${userId}
@@ -219,7 +219,7 @@ const maintenanceManager = {
             const serviceTypesResult = await Database.select(`
                 SELECT st.service_type 
                 FROM ServiceTypes st
-                JOIN MaintenanceEvents_ServiceTypes mest ON st.service_type = mest.service_type
+                JOIN UpcomingServices_ServiceTypes mest ON st.service_type = mest.service_type
                 WHERE mest.event_id = ${event.event_id}
             `);
             serviceTypes = serviceTypesResult.map(st => st.service_type);
@@ -426,7 +426,7 @@ const maintenanceManager = {
 
     showEditForm: async (eventId) => {
         try {
-            const events = await Database.select(`SELECT * FROM MaintenanceEvents WHERE event_id = ${eventId}`);
+            const events = await Database.select(`SELECT * FROM UpcomingServices WHERE event_id = ${eventId}`);
             const event = events[0];
             if (!event) {
                 Utils.showAlert('Maintenance event not found!', 'danger');
@@ -478,7 +478,7 @@ const maintenanceManager = {
             const currentServiceTypes = await Database.select(`
                 SELECT st.service_type 
                 FROM ServiceTypes st
-                JOIN MaintenanceEvents_ServiceTypes mest ON st.service_type = mest.service_type
+                JOIN UpcomingServices_ServiceTypes mest ON st.service_type = mest.service_type
                 WHERE mest.event_id = ${eventId}
             `);
             if (currentServiceTypes.length > 0) {
@@ -569,11 +569,11 @@ const maintenanceManager = {
             
             if (eventId) {
                 // Update existing event
-                await Database.updateRecord('MaintenanceEvents', maintenanceData, `event_id = ${eventId}`);
+                await Database.updateRecord('UpcomingServices', maintenanceData, `event_id = ${eventId}`);
                 Utils.showAlert('Maintenance event updated successfully', 'success');
             } else {
                 // Add new event
-                const result = await Database.insertRecord('MaintenanceEvents', maintenanceData);
+                const result = await Database.insertRecord('UpcomingServices', maintenanceData);
                 newEventId = result.insertId; // Get the ID of the newly inserted record
                 Utils.showAlert('Maintenance event added successfully', 'success');
             }
@@ -581,11 +581,11 @@ const maintenanceManager = {
             // Handle service types
             if (newEventId) {
                 // First, remove any existing service types for this event
-                await Database.deleteRecords('MaintenanceEvents_ServiceTypes', `event_id = ${newEventId}`);
+                await Database.deleteRecords('UpcomingServices_ServiceTypes', `event_id = ${newEventId}`);
                 
                 // Then add the selected service type if one was chosen
                 if (selectedServiceTypes && selectedServiceTypes.trim() !== '') {
-                    await Database.insertRecord('MaintenanceEvents_ServiceTypes', {
+                    await Database.insertRecord('UpcomingServices_ServiceTypes', {
                         event_id: newEventId,
                         service_type: selectedServiceTypes
                     });
@@ -650,13 +650,13 @@ const maintenanceManager = {
 
         try {
             // Remove event from database
-            await Database.deleteRecords('MaintenanceEvents', `event_id = ${eventId}`);
+            await Database.deleteRecords('UpcomingServices', `event_id = ${eventId}`);
             
             // Remove associated service types (if table exists)
             try {
-                await Database.deleteRecords('MaintenanceEvents_ServiceTypes', `event_id = ${eventId}`);
+                await Database.deleteRecords('UpcomingServices_ServiceTypes', `event_id = ${eventId}`);
             } catch (error) {
-                console.log('MaintenanceEvents_ServiceTypes table may not exist, skipping relationship cleanup');
+                console.log('UpcomingServices_ServiceTypes table may not exist, skipping relationship cleanup');
             }
             
             // Remove associated reminders (if table exists)
@@ -680,7 +680,7 @@ const maintenanceManager = {
     showAddReminderForm: async (eventId) => {
         try {
             // Get maintenance event details for context
-            const events = await Database.select(`SELECT me.*, v.make, v.model, v.year FROM MaintenanceEvents me LEFT JOIN Vehicles v ON me.vin = v.vin WHERE me.event_id = ${eventId}`);
+            const events = await Database.select(`SELECT me.*, v.make, v.model, v.year FROM UpcomingServices me LEFT JOIN Vehicles v ON me.vin = v.vin WHERE me.event_id = ${eventId}`);
             const event = events[0];
             
             if (!event) {
@@ -815,7 +815,7 @@ const maintenanceManager = {
                 return;
             }
 
-            const events = await Database.select(`SELECT me.*, v.make, v.model, v.year FROM MaintenanceEvents me LEFT JOIN Vehicles v ON me.vin = v.vin WHERE me.event_id = ${reminder.event_id}`);
+            const events = await Database.select(`SELECT me.*, v.make, v.model, v.year FROM UpcomingServices me LEFT JOIN Vehicles v ON me.vin = v.vin WHERE me.event_id = ${reminder.event_id}`);
             const event = events[0];
             if (!event) {
                 Utils.showAlert('Maintenance event not found!', 'danger');

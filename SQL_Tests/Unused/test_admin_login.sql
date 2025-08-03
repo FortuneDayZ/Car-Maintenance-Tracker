@@ -11,9 +11,10 @@ SELECT
     LENGTH(password_hash) as hash_length,
     password_hash,
     birthday,
-    registration_date
+    registration_date,
+    is_admin
 FROM Users 
-WHERE username = 'admin';
+WHERE is_admin = 1;
 
 -- Test the password hash calculation
 -- The hash should be: btoa('admin').substring(0, 8).padEnd(60, '=')
@@ -27,4 +28,4 @@ SELECT
         ELSE 'FAIL - Hash length should be 60'
     END as result
 FROM Users 
-WHERE username = 'admin'; 
+WHERE is_admin = 1; 

@@ -399,7 +399,7 @@ const analyticsManager = {
             // First get the total count for percentage calculation
             const totalCountResult = await Database.select(`
                 SELECT COUNT(*) as total_count
-                FROM MaintenanceEvents me
+                FROM UpcomingServices me
                 ${userFilter}
             `);
             
@@ -410,7 +410,7 @@ const analyticsManager = {
                 SELECT status,
                        COUNT(*) as count,
                        ROUND(COUNT(*) * 100.0 / ${totalCount}, 1) as percentage
-                FROM MaintenanceEvents me
+                FROM UpcomingServices me
                 ${userFilter}
                 GROUP BY status
                 ORDER BY count DESC
@@ -599,7 +599,7 @@ const analyticsManager = {
 
             const maintenanceEvents = await Database.select(`
                 SELECT me.*, u.username, v.make, v.model, v.year 
-                FROM MaintenanceEvents me
+                FROM UpcomingServices me
                 LEFT JOIN Users u ON me.user_id = u.user_id
                 LEFT JOIN Vehicles v ON me.vin = v.vin
                 ${userFilterMaintenance}

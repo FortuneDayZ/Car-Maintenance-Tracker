@@ -380,13 +380,13 @@ const testManager = {
 
             // Clear junction tables first (they reference other tables)
             await Database.executeQuery('DELETE FROM `Reminder`');
-            await Database.executeQuery('DELETE FROM `MaintenanceEvents_ServiceTypes`');
+            await Database.executeQuery('DELETE FROM `UpcomingServices_ServiceTypes`');
             await Database.executeQuery('DELETE FROM `ServiceRecords_Parts`');
             await Database.executeQuery('DELETE FROM `ServiceRecords_ServiceTypes`');
             await Database.executeQuery('DELETE FROM `WorkedOn`');
 
             // Clear dependent tables (tables that reference other tables)
-            await Database.executeQuery('DELETE FROM `MaintenanceEvents`');
+            await Database.executeQuery('DELETE FROM `UpcomingServices`');
             await Database.executeQuery('DELETE FROM `FuelLog`');
             await Database.executeQuery('DELETE FROM `Expenses`');
             await Database.executeQuery('DELETE FROM `Parts`');
@@ -411,7 +411,7 @@ const testManager = {
             await Database.executeQuery('ALTER TABLE `Parts` AUTO_INCREMENT = 1');
             await Database.executeQuery('ALTER TABLE `Expenses` AUTO_INCREMENT = 1');
             await Database.executeQuery('ALTER TABLE `FuelLog` AUTO_INCREMENT = 1');
-            await Database.executeQuery('ALTER TABLE `MaintenanceEvents` AUTO_INCREMENT = 1');
+            await Database.executeQuery('ALTER TABLE `UpcomingServices` AUTO_INCREMENT = 1');
             await Database.executeQuery('ALTER TABLE `Reminder` AUTO_INCREMENT = 1');
             
             // Re-insert admin user and service types
@@ -435,11 +435,11 @@ const testManager = {
     insertAdminUser: async () => {
         try {
             // Insert admin user if it doesn't exist
-            const adminExists = await Database.select("SELECT COUNT(*) as count FROM Users WHERE username = 'admin'");
+            const adminExists = await Database.select("SELECT COUNT(*) as count FROM Users WHERE is_admin = 1");
             if (adminExists[0].count === 0) {
                 await Database.executeQuery(`
-                    INSERT INTO Users (username, password_hash, email, birthday, registration_date) 
-                    VALUES ('admin', '${Utils.hashPassword('admin')}', 'admin@example.com', '1990-01-01', CURDATE())
+                    INSERT INTO Users (username, password_hash, email, birthday, registration_date, is_admin) 
+                    VALUES ('admin', '${Utils.hashPassword('admin')}', 'admin@example.com', '1990-01-01', CURDATE(), 1)
                 `);
                 console.log('Admin user created');
             }
@@ -476,18 +476,18 @@ const testManager = {
 
         try {
             // Check if admin user exists
-            const existingAdmin = await Database.select('SELECT user_id FROM Users WHERE username = "admin"');
+            const existingAdmin = await Database.select('SELECT user_id FROM Users WHERE is_admin = 1');
             if (existingAdmin.length > 0) {
-                Utils.showAlert('Admin user "admin" already exists. No action taken.', 'info');
+                Utils.showAlert('Admin user already exists. No action taken.', 'info');
                 return;
             }
 
             // Insert new admin user
             await Database.executeQuery(`
-                INSERT INTO Users (username, password_hash, email, birthday, registration_date)
-                VALUES ('admin', '${Utils.hashPassword('admin')}', 'admin@example.com', '2000-01-01', NOW())
+                INSERT INTO Users (username, password_hash, email, birthday, registration_date, is_admin)
+                VALUES ('admin', '${Utils.hashPassword('admin')}', 'admin@example.com', '2000-01-01', NOW(), 1)
             `);
-            Utils.showAlert('Admin user "admin" restored successfully!', 'success');
+            Utils.showAlert('Admin user restored successfully!', 'success');
             // Refresh the entire page after restoring admin
             setTimeout(() => {
                 window.location.reload();

@@ -66,15 +66,15 @@ SELECT * FROM FuelLog WHERE vin = 'JTDKN31U890123456';
 UPDATE FuelLog SET total_cost = 43.50 WHERE fuel_log_id = 1;
 
 
--- MaintenanceEvents Table Queries
-SELECT * FROM MaintenanceEvents;
-SELECT * FROM MaintenanceEvents WHERE `status` = 'Upcoming';
-UPDATE MaintenanceEvents SET `status` = 'Completed' WHERE event_id = 1;
--- DELETE FROM MaintenanceEvents WHERE event_id = 3;
+-- UpcomingServices Table Queries
+SELECT * FROM UpcomingServices;
+SELECT * FROM UpcomingServices WHERE `status` = 'Upcoming';
+UPDATE UpcomingServices SET `status` = 'Completed' WHERE event_id = 1;
+-- DELETE FROM UpcomingServices WHERE event_id = 3;
 
--- MaintenanceEvents_ServiceTypes Table Queries
-SELECT * FROM MaintenanceEvents_ServiceTypes;
--- DELETE FROM MaintenanceEvents_ServiceTypes WHERE event_id = 3;
+-- UpcomingServices_ServiceTypes Table Queries
+SELECT * FROM UpcomingServices_ServiceTypes;
+-- DELETE FROM UpcomingServices_ServiceTypes WHERE event_id = 3;
 
 -- ReminderNotifications Table Queries
 SELECT * FROM Reminder;
