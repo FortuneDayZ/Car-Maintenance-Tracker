@@ -67,9 +67,9 @@ SELECT v.vin, NOW(), 'Test Category', 75.00, 'Test expense'
 FROM Vehicles v 
 WHERE v.vin = 'TEST1234567890123';
 
--- Statement 14: Insert a fuel log entry
-INSERT INTO FuelLog (vin, date_filled, current_mileage, gallons, total_cost, fuel_type) 
-SELECT v.vin, NOW(), 50000, 12.5, 45.00, 'Regular'
+-- Statement 14: Insert a fuel expense entry
+INSERT INTO Expenses (vin, date, category, amount, description) 
+SELECT v.vin, NOW(), 'Fuel', 45.00, 'Fuel expense - 12.5 gallons of Regular'
 FROM Vehicles v 
 WHERE v.vin = 'TEST1234567890123';
 
@@ -86,8 +86,8 @@ FROM UpcomingServices me, ServiceTypes st
 WHERE me.status = 'Scheduled' AND st.service_type = 'Test Service';
 
 -- Statement 17: Insert a reminder
-INSERT INTO Reminder (event_id, message, send_date, is_sent) 
-SELECT me.event_id, 'Test reminder message', NOW(), FALSE
+INSERT INTO Reminder (event_id, message, send_date, was_sent, was_read) 
+SELECT me.event_id, 'Test reminder message', NOW(), FALSE, FALSE
 FROM UpcomingServices me
 WHERE me.status = 'Scheduled';
 

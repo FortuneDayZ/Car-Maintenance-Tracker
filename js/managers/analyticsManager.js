@@ -187,7 +187,7 @@ const analyticsManager = {
                                                 <tr>
                                                     <td><span class="badge bg-info">${item.fuel_type}</span></td>
                                                     <td>${Number(item.total_gallons).toFixed(2)} gal</td>
-                                                    <td>${Utils.formatCurrency(item.total_cost)}</td>
+                                                    <td>${Utils.formatCurrency(item.total_amount)}</td>
                                                     <td>${Utils.formatCurrency(item.avg_price_per_gallon)}</td>
                                                     <td>${item.fill_ups}</td>
                                                 </tr>
@@ -220,7 +220,7 @@ const analyticsManager = {
                                                 <tr>
                                                     <td>${item.month}</td>
                                                     <td><span class="badge bg-primary">${item.service_count}</span></td>
-                                                    <td>${Utils.formatCurrency(item.total_cost)}</td>
+                                                    <td>${Utils.formatCurrency(item.total_amount)}</td>
                                                 </tr>
                                             `).join('')}
                                         </tbody>
@@ -321,18 +321,20 @@ const analyticsManager = {
 
     // 3. AVG, SUM with GROUP BY - Fuel Statistics
     getFuelStatistics: async (userId, isAdmin) => {
-        const userFilter = isAdmin ? '' : `JOIN Owns o ON fl.vin = o.vin WHERE o.user_id = ${userId}`;
+        const userFilter = isAdmin ? '' : `JOIN Owns o ON e.vin = o.vin WHERE o.user_id = ${userId}`;
         
         const sql = `
-            SELECT fuel_type,
-                   SUM(gallons) as total_gallons,
-                   SUM(total_cost) as total_cost,
-                   AVG(total_cost / gallons) as avg_price_per_gallon,
+            SELECT fe.fuel_type,
+                   SUM(fe.gallons) as total_gallons,
+                                       SUM(e.amount) as total_amount,
+                   AVG(e.amount / fe.gallons) as avg_price_per_gallon,
                    COUNT(*) as fill_ups
-            FROM FuelLog fl
+            FROM Expenses e
+            JOIN FuelExpenses fe ON e.expense_id = fe.expense_id
+            WHERE e.category = 'Fuel'
             ${userFilter}
-            GROUP BY fuel_type
-            ORDER BY total_cost DESC
+            GROUP BY fe.fuel_type
+                            ORDER BY total_amount DESC
         `;
         
         return await Database.select(sql);
@@ -345,7 +347,7 @@ const analyticsManager = {
         const sql = `
             SELECT DATE_FORMAT(service_date, '%Y-%m') as month,
                    COUNT(*) as service_count,
-                   SUM(cost) as total_cost
+                                       SUM(cost) as total_amount
             FROM ServiceRecords sr
             ${userFilter}
             GROUP BY DATE_FORMAT(service_date, '%Y-%m')
@@ -359,7 +361,6 @@ const analyticsManager = {
     // 5. SUM with multiple joins - Total Cost Summary
     getTotalCostSummary: async (userId, isAdmin) => {
         const userFilter = isAdmin ? '' : `JOIN Owns o ON e.vin = o.vin WHERE o.user_id = ${userId}`;
-        const userFilterFuel = isAdmin ? '' : `JOIN Owns o ON fl.vin = o.vin WHERE o.user_id = ${userId}`;
         const userFilterService = isAdmin ? '' : `JOIN Owns o ON sr.vin = o.vin WHERE o.user_id = ${userId}`;
         
         // Total Expenses
@@ -371,9 +372,11 @@ const analyticsManager = {
         
         // Total Fuel Cost
         const fuelResult = await Database.select(`
-            SELECT SUM(total_cost) as total_fuel_cost
-            FROM FuelLog fl
-            ${userFilterFuel}
+            SELECT SUM(e.amount) as total_fuel_cost
+            FROM Expenses e
+            JOIN FuelExpenses fe ON e.expense_id = fe.expense_id
+            WHERE e.category = 'Fuel'
+            ${userFilter}
         `);
         
         // Total Service Cost and Average
@@ -471,7 +474,7 @@ const analyticsManager = {
             csvContent += 'FUEL STATISTICS BY TYPE\n';
             csvContent += 'Fuel Type,Total Gallons,Total Cost,Avg Price/Gal,Fill-ups\n';
             fuelStats.forEach(item => {
-                csvContent += `${item.fuel_type},${Number(item.total_gallons).toFixed(2)},${Utils.formatCurrency(item.total_cost)},${Utils.formatCurrency(item.avg_price_per_gallon)},${item.fill_ups}\n`;
+                csvContent += `${item.fuel_type},${Number(item.total_gallons).toFixed(2)},${Utils.formatCurrency(item.total_amount)},${Utils.formatCurrency(item.avg_price_per_gallon)},${item.fill_ups}\n`;
             });
             csvContent += '\n';
 
@@ -479,7 +482,7 @@ const analyticsManager = {
             csvContent += 'SERVICE COUNT BY MONTH\n';
             csvContent += 'Month,Service Count,Total Cost\n';
             serviceCountByMonth.forEach(item => {
-                csvContent += `${item.month},${item.service_count},${Utils.formatCurrency(item.total_cost)}\n`;
+                csvContent += `${item.month},${item.service_count},${Utils.formatCurrency(item.total_amount)}\n`;
             });
             csvContent += '\n';
 
@@ -528,10 +531,10 @@ const analyticsManager = {
             // Fuel Log Data
             csvContent += 'FUEL LOG DETAILED DATA\n';
             csvContent += 'ID,Vehicle,Date,Mileage,Gallons,Cost,Fuel Type\n';
-            detailedData.fuelLogs.forEach(log => {
-                const vehicle = log.make && log.model && log.year ? 
-                    `${log.year} ${log.make} ${log.model}` : 'Unknown Vehicle';
-                csvContent += `${log.fuel_log_id},"${vehicle}",${log.date_filled},${log.current_mileage},${log.gallons},${Utils.formatCurrency(log.total_cost)},${log.fuel_type}\n`;
+            detailedData.fuelExpenses.forEach(expense => {
+                const vehicle = expense.make && expense.model && expense.year ? 
+                    `${expense.year} ${expense.make} ${expense.model}` : 'Unknown Vehicle';
+                csvContent += `${expense.expense_id},"${vehicle}",${expense.date},${expense.current_mileage},${expense.gallons},${Utils.formatCurrency(expense.amount)},${expense.fuel_type}\n`;
             });
             csvContent += '\n';
 
@@ -567,7 +570,7 @@ const analyticsManager = {
     // Get detailed data for export
     getDetailedDataForExport: async (userId, isAdmin) => {
         const userFilter = isAdmin ? '' : `JOIN Owns o ON e.vin = o.vin WHERE o.user_id = ${userId}`;
-        const userFilterFuel = isAdmin ? '' : `JOIN Owns o ON fl.vin = o.vin WHERE o.user_id = ${userId}`;
+
         const userFilterService = isAdmin ? '' : `JOIN Owns o ON sr.vin = o.vin WHERE o.user_id = ${userId}`;
         const userFilterMaintenance = isAdmin ? '' : `WHERE me.user_id = ${userId}`;
 
@@ -581,12 +584,14 @@ const analyticsManager = {
                 ORDER BY e.date DESC
             `);
 
-            const fuelLogs = await Database.select(`
-                SELECT fl.*, v.make, v.model, v.year 
-                FROM FuelLog fl
-                LEFT JOIN Vehicles v ON fl.vin = v.vin
-                ${userFilterFuel}
-                ORDER BY fl.date_filled DESC
+            const fuelExpenses = await Database.select(`
+                SELECT e.*, fe.gallons, fe.current_mileage, fe.fuel_type, v.make, v.model, v.year 
+                FROM Expenses e
+                JOIN FuelExpenses fe ON e.expense_id = fe.expense_id
+                LEFT JOIN Vehicles v ON e.vin = v.vin
+                WHERE e.category = 'Fuel'
+                ${userFilter}
+                ORDER BY e.date DESC
             `);
 
             const serviceRecords = await Database.select(`
@@ -608,7 +613,7 @@ const analyticsManager = {
 
             return {
                 expenses,
-                fuelLogs,
+                fuelExpenses,
                 serviceRecords,
                 maintenanceEvents
             };

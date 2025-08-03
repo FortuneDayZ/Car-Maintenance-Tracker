@@ -60,10 +60,10 @@ SELECT * FROM Expenses WHERE vin = '1HGCM82638A123456';
 UPDATE Expenses SET amount = 28.00 WHERE expense_id = 3;
 -- DELETE FROM Expenses WHERE expense_id = 4;
 
--- FuelLog Table Queries
-SELECT * FROM FuelLog;
-SELECT * FROM FuelLog WHERE vin = 'JTDKN31U890123456';
-UPDATE FuelLog SET total_cost = 43.50 WHERE fuel_log_id = 1;
+-- FuelExpenses Table Queries
+SELECT e.*, fe.gallons, fe.current_mileage, fe.fuel_type FROM Expenses e JOIN FuelExpenses fe ON e.expense_id = fe.expense_id WHERE e.category = 'Fuel';
+SELECT e.*, fe.gallons, fe.current_mileage, fe.fuel_type FROM Expenses e JOIN FuelExpenses fe ON e.expense_id = fe.expense_id WHERE e.category = 'Fuel' AND e.vin = 'JTDKN31U890123456';
+UPDATE Expenses SET amount = 43.50 WHERE expense_id = 1;
 
 
 -- UpcomingServices Table Queries
@@ -78,6 +78,6 @@ SELECT * FROM UpcomingServices_ServiceTypes;
 
 -- ReminderNotifications Table Queries
 SELECT * FROM Reminder;
-SELECT * FROM Reminder WHERE is_sent = FALSE;
-UPDATE Reminder SET is_sent = TRUE WHERE reminder_id = 1;
+SELECT * FROM Reminder WHERE was_sent = FALSE;
+UPDATE Reminder SET was_sent = TRUE WHERE reminder_id = 1;
 -- DELETE FROM ReminderNotifications WHERE reminder_id = 3;

@@ -30,7 +30,7 @@ const maintenanceManager = {
                 JOIN UpcomingServices me ON r.event_id = me.event_id
                 LEFT JOIN Vehicles v ON me.vin = v.vin
                 WHERE r.send_date = '${today}' 
-                AND r.is_sent = 0
+                AND r.was_sent = 0
                 ORDER BY r.send_date ASC
             `);
 
@@ -113,7 +113,7 @@ const maintenanceManager = {
     // Mark reminder as sent
     markReminderAsSent: async (reminderId, button) => {
         try {
-            await Database.updateRecord('Reminder', { is_sent: 1 }, `reminder_id = ${reminderId}`);
+            await Database.updateRecord('Reminder', { was_sent: 1 }, `reminder_id = ${reminderId}`);
             
             // Update button
             button.innerHTML = '<i class="fas fa-check"></i> Sent';
@@ -231,7 +231,7 @@ const maintenanceManager = {
         let reminders = [];
         try {
             const remindersResult = await Database.select(`
-                SELECT reminder_id, message, send_date, is_sent
+                SELECT reminder_id, message, send_date, was_sent, was_read
                 FROM Reminder
                 WHERE event_id = ${event.event_id}
                 ORDER BY send_date DESC
@@ -315,14 +315,14 @@ const maintenanceManager = {
                                                         <small class="text-muted">Due: ${Utils.formatDate(reminder.send_date)}</small>
                                                     </div>
                                                     <div class="d-flex align-items-center gap-1">
-                                                        <span class="badge ${reminder.is_sent ? 'bg-success' : 'bg-warning'}">
-                                                            ${reminder.is_sent ? 'Sent' : 'Pending'}
-                                                        </span>
+                                                                                <span class="badge ${reminder.was_sent ? 'bg-success' : 'bg-warning'}">
+                            ${reminder.was_sent ? 'Sent' : 'Pending'}
+                        </span>
                                                         <button class="btn btn-sm btn-outline-primary" onclick="maintenanceManager.showEditReminderForm(${reminder.reminder_id})" title="Edit Reminder">
                                                             <i class="fas fa-edit"></i>
                                                         </button>
-                                                        <button class="btn btn-sm btn-outline-secondary" onclick="maintenanceManager.toggleReminderStatus(${reminder.reminder_id}, ${reminder.is_sent})" title="${reminder.is_sent ? 'Mark as Pending' : 'Mark as Sent'}">
-                                                            <i class="fas fa-${reminder.is_sent ? 'undo' : 'check'}"></i>
+                                                        <button class="btn btn-sm btn-outline-secondary" onclick="maintenanceManager.toggleReminderStatus(${reminder.reminder_id}, ${reminder.was_sent})" title="${reminder.was_sent ? 'Mark as Pending' : 'Mark as Sent'}">
+                                                            <i class="fas fa-${reminder.was_sent ? 'undo' : 'check'}"></i>
                                                         </button>
                                                         <button class="btn btn-sm btn-outline-danger" onclick="maintenanceManager.deleteReminder(${reminder.reminder_id})" title="Delete Reminder">
                                                             <i class="fas fa-trash"></i>
@@ -709,9 +709,13 @@ const maintenanceManager = {
                     </div>
                     <div class="mb-3">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="reminderSent" name="is_sent">
+                            <input class="form-check-input" type="checkbox" id="reminderSent" name="was_sent">
                             <label class="form-check-label" for="reminderSent">
                                 Mark as already sent
+                            </label>
+                            <input class="form-check-input" type="checkbox" id="reminderRead" name="was_read">
+                            <label class="form-check-label" for="reminderRead">
+                                Mark as already read
                             </label>
                         </div>
                     </div>
@@ -739,7 +743,8 @@ const maintenanceManager = {
             event_id: eventId,
             message: formData.get('message'),
             send_date: formData.get('send_date'),
-            is_sent: formData.get('is_sent') === 'on' ? 1 : 0
+            was_sent: formData.get('was_sent') === 'on' ? 1 : 0,
+            was_read: formData.get('was_read') === 'on' ? 1 : 0
         };
 
         // Validation
@@ -794,7 +799,7 @@ const maintenanceManager = {
     toggleReminderStatus: async (reminderId, currentStatus) => {
         try {
             const newStatus = currentStatus ? 0 : 1;
-            await Database.updateRecord('Reminder', { is_sent: newStatus }, `reminder_id = ${reminderId}`);
+            await Database.updateRecord('Reminder', { was_sent: newStatus }, `reminder_id = ${reminderId}`);
             
             Utils.showAlert(`Reminder marked as ${newStatus ? 'sent' : 'pending'}`, 'success');
             
@@ -843,9 +848,15 @@ const maintenanceManager = {
                     </div>
                     <div class="mb-3">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="reminderSent" name="is_sent" ${reminder.is_sent ? 'checked' : ''}>
+                            <input class="form-check-input" type="checkbox" id="reminderSent" name="was_sent" ${reminder.was_sent ? 'checked' : ''}>
                             <label class="form-check-label" for="reminderSent">
                                 Mark as already sent
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="reminderRead" name="was_read" ${reminder.was_read ? 'checked' : ''}>
+                            <label class="form-check-label" for="reminderRead">
+                                Mark as already read
                             </label>
                         </div>
                     </div>

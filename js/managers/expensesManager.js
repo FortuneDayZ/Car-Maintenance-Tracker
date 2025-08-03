@@ -180,11 +180,10 @@ const expensesManager = {
 
         const categoryOptions = [
             { value: 'Maintenance', text: 'Maintenance' },
-            { value: 'Repair', text: 'Repair' },
-            { value: 'Insurance', text: 'Insurance' },
-            { value: 'Registration', text: 'Registration' },
             { value: 'Fuel', text: 'Fuel' },
-            { value: 'Other', text: 'Other' }
+            { value: 'Registration', text: 'Registration' },
+            { value: 'Insurance', text: 'Insurance' },
+            { value: 'Misc', text: 'Miscellaneous' }
         ];
 
         const formContent = `
@@ -218,11 +217,10 @@ const expensesManager = {
 
             const categoryOptions = [
                 { value: 'Maintenance', text: 'Maintenance' },
-                { value: 'Repair', text: 'Repair' },
-                { value: 'Insurance', text: 'Insurance' },
-                { value: 'Registration', text: 'Registration' },
                 { value: 'Fuel', text: 'Fuel' },
-                { value: 'Other', text: 'Other' }
+                { value: 'Registration', text: 'Registration' },
+                { value: 'Insurance', text: 'Insurance' },
+                { value: 'Misc', text: 'Miscellaneous' }
             ];
 
             const formContent = `

@@ -160,7 +160,7 @@ const testManager = {
             'Reminder',
             'UpcomingServices_ServiceTypes',
 'UpcomingServices',
-            'FuelLog',
+            
             'Expenses',
             'ServiceRecords_Parts',
             'ServiceRecords_ServiceTypes',
@@ -288,21 +288,43 @@ const testManager = {
                     expense_id INT AUTO_INCREMENT PRIMARY KEY,
                     vin VARCHAR(17) NOT NULL, 
                     date DATE NOT NULL,
-                    category VARCHAR(100) NOT NULL, 
+                    category ENUM('Maintenance', 'Fuel', 'Registration', 'Insurance', 'Misc') NOT NULL,
                     amount DECIMAL(10, 2) NOT NULL,
                     description TEXT,
                     FOREIGN KEY (vin) REFERENCES Vehicles(vin)
                         ON UPDATE CASCADE ON DELETE CASCADE
                 )`,
-                `CREATE TABLE FuelLog (
-                    fuel_log_id INT AUTO_INCREMENT PRIMARY KEY,
-                    vin VARCHAR(17) NOT NULL,
-                    date_filled DATE NOT NULL,
+                `CREATE TABLE MaintenanceExpenses (
+                    expense_id INT PRIMARY KEY,
+                    service_id INT NOT NULL,
+                    FOREIGN KEY (service_id) REFERENCES ServiceRecords(service_id) 
+                        ON UPDATE CASCADE ON DELETE CASCADE,
+                    FOREIGN KEY (expense_id) REFERENCES Expenses(expense_id) 
+                        ON UPDATE CASCADE ON DELETE CASCADE
+                )`,
+                `CREATE TABLE RegistrationExpenses (
+                    expense_id INT PRIMARY KEY,
+                    renewal_date DATE NOT NULL,
+                    renewal_period VARCHAR(50),
+                    state VARCHAR(50),
+                    FOREIGN KEY (expense_id) REFERENCES Expenses(expense_id) 
+                        ON UPDATE CASCADE ON DELETE CASCADE
+                )`,
+                `CREATE TABLE InsuranceExpenses (
+                    expense_id INT PRIMARY KEY,
+                    policy_number VARCHAR(100) NOT NULL,
+                    start_date DATE NOT NULL,
+                    end_date DATE NOT NULL,
+                    provider_name VARCHAR(100),
+                    FOREIGN KEY (expense_id) REFERENCES Expenses(expense_id)
+                        ON UPDATE CASCADE ON DELETE CASCADE
+                )`,
+                `CREATE TABLE FuelExpenses (
+                    expense_id INT PRIMARY KEY,
+                    gallons FLOAT NOT NULL,
                     current_mileage INT NOT NULL,
-                    gallons DECIMAL(10, 2) NOT NULL,
-                    total_cost DECIMAL(10, 2) NOT NULL,
                     fuel_type VARCHAR(50),
-                    FOREIGN KEY (vin) REFERENCES Vehicles(vin)
+                    FOREIGN KEY (expense_id) REFERENCES Expenses(expense_id)
                         ON UPDATE CASCADE ON DELETE CASCADE
                 )`,
                 `CREATE TABLE UpcomingServices (
@@ -331,7 +353,8 @@ const testManager = {
                     event_id INT,
                     message TEXT,
                     send_date DATE NOT NULL,
-                    is_sent BOOLEAN NOT NULL,
+                    was_sent BOOLEAN NOT NULL,
+                    was_read BOOLEAN NOT NULL,
                     PRIMARY KEY (reminder_id, event_id),
                     FOREIGN KEY (event_id) REFERENCES UpcomingServices(event_id) 
                         ON UPDATE CASCADE ON DELETE CASCADE

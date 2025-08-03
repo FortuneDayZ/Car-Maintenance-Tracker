@@ -1,4 +1,4 @@
-// Fuel Log Manager
+// Fuel Expenses Manager
 const fuelManager = {
     container: null,
 
@@ -19,24 +19,27 @@ const fuelManager = {
             const userId = AuthManager.currentUser?.user_id;
             const isAdmin = AuthManager.isAdmin();
             
-            // Get fuel logs from database based on user permissions
-            let fuelLogsToShow = [];
+            // Get fuel expenses from database based on user permissions
+            let fuelExpensesToShow = [];
             if (isAdmin) {
-                fuelLogsToShow = await Database.select(`
-                    SELECT fl.*, v.make, v.model, v.year 
-                    FROM FuelLog fl
-                    LEFT JOIN Vehicles v ON fl.vin = v.vin
-                    ORDER BY fl.date_filled DESC
+                fuelExpensesToShow = await Database.select(`
+                    SELECT e.*, fe.gallons, fe.current_mileage, fe.fuel_type, v.make, v.model, v.year 
+                    FROM Expenses e
+                    JOIN FuelExpenses fe ON e.expense_id = fe.expense_id
+                    LEFT JOIN Vehicles v ON e.vin = v.vin
+                    WHERE e.category = 'Fuel'
+                    ORDER BY e.date DESC
                 `);
             } else {
-                // Regular users can only see their own fuel logs
-                fuelLogsToShow = await Database.select(`
-                    SELECT fl.*, v.make, v.model, v.year 
-                    FROM FuelLog fl
-                    LEFT JOIN Vehicles v ON fl.vin = v.vin
-                    JOIN Owns o ON fl.vin = o.vin
-                    WHERE o.user_id = ${userId}
-                    ORDER BY fl.date_filled DESC
+                // Regular users can only see their own fuel expenses
+                fuelExpensesToShow = await Database.select(`
+                    SELECT e.*, fe.gallons, fe.current_mileage, fe.fuel_type, v.make, v.model, v.year 
+                    FROM Expenses e
+                    JOIN FuelExpenses fe ON e.expense_id = fe.expense_id
+                    LEFT JOIN Vehicles v ON e.vin = v.vin
+                    JOIN Owns o ON e.vin = o.vin
+                    WHERE e.category = 'Fuel' AND o.user_id = ${userId}
+                    ORDER BY e.date DESC
                 `);
             }
 
@@ -108,7 +111,7 @@ const fuelManager = {
                             </tr>
                         </thead>
                         <tbody>
-                            ${fuelLogsToShow.map(log => fuelManager.createFuelRow(log)).join('')}
+                            ${fuelExpensesToShow.map(expense => fuelManager.createFuelRow(expense)).join('')}
                         </tbody>
                     </table>
                 </div>
@@ -116,10 +119,10 @@ const fuelManager = {
             
             fuelManager.container.innerHTML = table;
         } catch (error) {
-            console.error('Error loading fuel logs:', error);
+            console.error('Error loading fuel expenses:', error);
             fuelManager.container.innerHTML = `
                 <div class="alert alert-danger">
-                    <h4><i class="fas fa-exclamation-triangle"></i> Error Loading Fuel Logs</h4>
+                    <h4><i class="fas fa-exclamation-triangle"></i> Error Loading Fuel Expenses</h4>
                     <p>${error.message}</p>
                     <button class="btn btn-primary" onclick="fuelManager.render()">
                         <i class="fas fa-sync"></i> Retry
@@ -129,29 +132,29 @@ const fuelManager = {
         }
     },
 
-    createFuelRow: (log) => {
-        const vehicle = log.make && log.model && log.year ? 
-            `${log.year} ${log.make} ${log.model}` : 'Unknown Vehicle';
+    createFuelRow: (expense) => {
+        const vehicle = expense.make && expense.model && expense.year ? 
+            `${expense.year} ${expense.make} ${expense.model}` : 'Unknown Vehicle';
         
         // Safely convert numeric values
-        const currentMileage = Number(log.current_mileage) || 0;
-        const gallons = Number(log.gallons) || 0;
-        const totalCost = Number(log.total_cost) || 0;
+        const currentMileage = Number(expense.current_mileage) || 0;
+        const gallons = Number(expense.gallons) || 0;
+        const amount = Number(expense.amount) || 0;
         
         return `
             <tr>
-                <td>${log.fuel_log_id}</td>
+                <td>${expense.expense_id}</td>
                 <td>${vehicle}</td>
-                <td>${Utils.formatDate(log.date_filled)}</td>
+                <td>${Utils.formatDate(expense.date)}</td>
                 <td>${currentMileage.toLocaleString()}</td>
                 <td>${gallons.toFixed(2)} gal</td>
-                <td>${Utils.formatCurrency(totalCost)}</td>
-                <td><span class="badge bg-info">${log.fuel_type}</span></td>
+                <td>${Utils.formatCurrency(amount)}</td>
+                <td><span class="badge bg-info">${expense.fuel_type}</span></td>
                 <td>
-                    <button class="btn btn-sm btn-primary" onclick="fuelManager.showEditForm(${log.fuel_log_id})">
+                    <button class="btn btn-sm btn-primary" onclick="fuelManager.showEditForm(${expense.expense_id})">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn btn-sm btn-danger" onclick="fuelManager.deleteFuelLog(${log.fuel_log_id})">
+                    <button class="btn btn-sm btn-danger" onclick="fuelManager.deleteFuelExpense(${expense.expense_id})">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
@@ -195,26 +198,31 @@ const fuelManager = {
         const formContent = `
             <form id="fuelForm">
                 ${Utils.createFormField('Vehicle', 'vin', 'select', true, vehicleOptions).outerHTML}
-                ${Utils.createFormField('Date Filled', 'date_filled', 'date', true).outerHTML}
+                ${Utils.createFormField('Date', 'date', 'date', true).outerHTML}
                 ${Utils.createFormField('Current Mileage', 'current_mileage', 'number', true).outerHTML}
                 ${Utils.createFormField('Gallons', 'gallons', 'number', true).outerHTML}
-                ${Utils.createFormField('Total Cost', 'total_cost', 'number', true).outerHTML}
+                ${Utils.createFormField('Amount', 'amount', 'number', true).outerHTML}
                 ${Utils.createFormField('Fuel Type', 'fuel_type', 'select', true, fuelTypeOptions).outerHTML}
             </form>
         `;
 
-        Utils.ModalManager.show('Add New Fuel Entry', formContent, () => fuelManager.saveFuelLog());
+        Utils.ModalManager.show('Add New Fuel Expense', formContent, () => fuelManager.saveFuelExpense());
         } catch (error) {
             console.error('Error loading vehicles for fuel form:', error);
             Utils.showAlert(`Error loading vehicles: ${error.message}`, 'danger');
         }
     },
 
-    showEditForm: async (logId) => {
+    showEditForm: async (expenseId) => {
         try {
-            const logs = await Database.select(`SELECT * FROM FuelLog WHERE fuel_log_id = ${logId}`);
-            const log = logs[0];
-            if (!log) return;
+            const expenses = await Database.select(`
+                SELECT e.*, fe.gallons, fe.current_mileage, fe.fuel_type 
+                FROM Expenses e
+                JOIN FuelExpenses fe ON e.expense_id = fe.expense_id
+                WHERE e.expense_id = ${expenseId} AND e.category = 'Fuel'
+            `);
+            const expense = expenses[0];
+            if (!expense) return;
 
             let vehicles;
             if (AuthManager.isAdmin()) {
@@ -246,24 +254,24 @@ const fuelManager = {
         const formContent = `
             <form id="fuelForm">
                 ${Utils.createFormField('Vehicle', 'vin', 'select', true, vehicleOptions).outerHTML}
-                ${Utils.createFormField('Date Filled', 'date_filled', 'date', true).outerHTML}
+                ${Utils.createFormField('Date', 'date', 'date', true).outerHTML}
                 ${Utils.createFormField('Current Mileage', 'current_mileage', 'number', true).outerHTML}
                 ${Utils.createFormField('Gallons', 'gallons', 'number', true).outerHTML}
-                ${Utils.createFormField('Total Cost', 'total_cost', 'number', true).outerHTML}
+                ${Utils.createFormField('Amount', 'amount', 'number', true).outerHTML}
                 ${Utils.createFormField('Fuel Type', 'fuel_type', 'select', true, fuelTypeOptions).outerHTML}
             </form>
         `;
 
-        Utils.ModalManager.show('Edit Fuel Entry', formContent, () => fuelManager.saveFuelLog(logId));
+        Utils.ModalManager.show('Edit Fuel Expense', formContent, () => fuelManager.saveFuelExpense(expenseId));
         
         // Populate form with existing data after modal is shown
         Utils.populateForm({
-            vin: log.vin,
-            date_filled: log.date_filled,
-            current_mileage: log.current_mileage,
-            gallons: log.gallons,
-            total_cost: log.total_cost,
-            fuel_type: log.fuel_type
+            vin: expense.vin,
+            date: expense.date,
+            current_mileage: expense.current_mileage,
+            gallons: expense.gallons,
+            amount: expense.amount,
+            fuel_type: expense.fuel_type
         });
         } catch (error) {
             console.error('Error loading fuel log for edit:', error);
@@ -271,74 +279,84 @@ const fuelManager = {
         }
     },
 
-    saveFuelLog: async (logId = null) => {
+    saveFuelExpense: async (expenseId = null) => {
         const form = document.getElementById('fuelForm');
         const formData = new FormData(form);
         
-        const logData = {
+        const expenseData = {
             vin: formData.get('vin'),
-            date_filled: formData.get('date_filled'),
-            current_mileage: parseInt(formData.get('current_mileage')),
+            date: formData.get('date'),
+            category: 'Fuel',
+            amount: parseFloat(formData.get('amount')),
+            description: `Fuel expense - ${formData.get('gallons')} gallons of ${formData.get('fuel_type')}`
+        };
+
+        const fuelExpenseData = {
             gallons: parseFloat(formData.get('gallons')),
-            total_cost: parseFloat(formData.get('total_cost')),
+            current_mileage: parseInt(formData.get('current_mileage')),
             fuel_type: formData.get('fuel_type')
         };
 
         // Validation - check for empty strings and NaN values
-        if (!logData.vin || logData.vin.trim() === '') {
+        if (!expenseData.vin || expenseData.vin.trim() === '') {
             Utils.showAlert('Vehicle is required', 'danger');
             return;
         }
         
-        if (!logData.date_filled || logData.date_filled.trim() === '') {
+        if (!expenseData.date || expenseData.date.trim() === '') {
             Utils.showAlert('Date is required', 'danger');
             return;
         }
         
-        if (isNaN(logData.current_mileage)) {
+        if (isNaN(fuelExpenseData.current_mileage)) {
             Utils.showAlert('Current mileage must be a valid number', 'danger');
             return;
         }
         
-        if (isNaN(logData.gallons)) {
+        if (isNaN(fuelExpenseData.gallons)) {
             Utils.showAlert('Gallons must be a valid number', 'danger');
             return;
         }
         
-        if (isNaN(logData.total_cost)) {
-            Utils.showAlert('Total cost must be a valid number', 'danger');
+        if (isNaN(expenseData.amount)) {
+            Utils.showAlert('Amount must be a valid number', 'danger');
             return;
         }
         
-        if (!logData.fuel_type || logData.fuel_type.trim() === '') {
+        if (!fuelExpenseData.fuel_type || fuelExpenseData.fuel_type.trim() === '') {
             Utils.showAlert('Fuel type is required', 'danger');
             return;
         }
 
-        if (logData.current_mileage < 0) {
+        if (fuelExpenseData.current_mileage < 0) {
             Utils.showAlert('Mileage must be a positive number', 'danger');
             return;
         }
 
-        if (logData.gallons <= 0) {
+        if (fuelExpenseData.gallons <= 0) {
             Utils.showAlert('Gallons must be a positive number', 'danger');
             return;
         }
 
-        if (logData.total_cost < 0) {
-            Utils.showAlert('Total cost must be a positive number', 'danger');
+        if (expenseData.amount < 0) {
+            Utils.showAlert('Amount must be a positive number', 'danger');
             return;
         }
 
         try {
-            if (logId) {
-                // Update existing log
-                await Database.updateRecord('FuelLog', logData, `fuel_log_id = ${logId}`);
-                Utils.showAlert('Fuel log updated successfully', 'success');
+            if (expenseId) {
+                // Update existing expense
+                await Database.updateRecord('Expenses', expenseData, `expense_id = ${expenseId}`);
+                await Database.updateRecord('FuelExpenses', fuelExpenseData, `expense_id = ${expenseId}`);
+                Utils.showAlert('Fuel expense updated successfully', 'success');
             } else {
-                // Add new log
-                await Database.insertRecord('FuelLog', logData);
-                Utils.showAlert('Fuel log added successfully', 'success');
+                // Add new expense
+                const result = await Database.insertRecord('Expenses', expenseData);
+                const newExpenseId = result.insertId;
+                
+                fuelExpenseData.expense_id = newExpenseId;
+                await Database.insertRecord('FuelExpenses', fuelExpenseData);
+                Utils.showAlert('Fuel expense added successfully', 'success');
             }
 
             Utils.ModalManager.hide();
@@ -387,40 +405,45 @@ const fuelManager = {
         }
     },
 
-    deleteFuelLog: async (logId) => {
-        if (!confirm('Are you sure you want to delete this fuel log entry?')) {
+    deleteFuelExpense: async (expenseId) => {
+        if (!confirm('Are you sure you want to delete this fuel expense?')) {
             return;
         }
 
         try {
-            await Database.deleteRecords('FuelLog', `fuel_log_id = ${logId}`);
-            Utils.showAlert('Fuel log deleted successfully', 'success');
+            // Delete from FuelExpenses first (due to foreign key constraint)
+            await Database.deleteRecords('FuelExpenses', `expense_id = ${expenseId}`);
+            // Then delete from Expenses
+            await Database.deleteRecords('Expenses', `expense_id = ${expenseId}`);
+            Utils.showAlert('Fuel expense deleted successfully', 'success');
             
-            // Refresh all sections that depend on fuel log data
+            // Refresh all sections that depend on fuel expense data
             await fuelManager.refreshAllRelatedSections();
         } catch (error) {
-            console.error('Error deleting fuel log:', error);
-            Utils.showAlert(`Error deleting fuel log: ${error.message}`, 'danger');
+            console.error('Error deleting fuel expense:', error);
+            Utils.showAlert(`Error deleting fuel expense: ${error.message}`, 'danger');
         }
     },
 
     // Get fuel summary with aggregate functions
     getFuelSummary: async (userId, isAdmin) => {
-        const userFilter = isAdmin ? '' : `JOIN Owns o ON fl.vin = o.vin WHERE o.user_id = ${userId}`;
+        const userFilter = isAdmin ? '' : `JOIN Owns o ON e.vin = o.vin WHERE o.user_id = ${userId}`;
         
         try {
             const summaryResult = await Database.select(`
                 SELECT 
-                    SUM(total_cost) as total_cost,
-                    SUM(gallons) as total_gallons,
-                    AVG(total_cost / gallons) as avg_price_per_gallon,
+                    SUM(e.amount) as total_amount,
+                    SUM(fe.gallons) as total_gallons,
+                    AVG(e.amount / fe.gallons) as avg_price_per_gallon,
                     COUNT(*) as total_fill_ups
-                FROM FuelLog fl
+                FROM Expenses e
+                JOIN FuelExpenses fe ON e.expense_id = fe.expense_id
+                WHERE e.category = 'Fuel'
                 ${userFilter}
             `);
             
             return {
-                totalCost: summaryResult[0]?.total_cost || 0,
+                totalCost: summaryResult[0]?.total_amount || 0,
                 totalGallons: summaryResult[0]?.total_gallons || 0,
                 avgPricePerGallon: summaryResult[0]?.avg_price_per_gallon || 0,
                 totalFillUps: summaryResult[0]?.total_fill_ups || 0
@@ -443,22 +466,25 @@ const fuelManager = {
             const isAdmin = AuthManager.isAdmin();
             
             // Get fuel data
-            let fuelLogsToShow = [];
+            let fuelExpensesToShow = [];
             if (isAdmin) {
-                fuelLogsToShow = await Database.select(`
-                    SELECT fl.*, v.make, v.model, v.year 
-                    FROM FuelLog fl
-                    LEFT JOIN Vehicles v ON fl.vin = v.vin
-                    ORDER BY fl.date_filled DESC
+                fuelExpensesToShow = await Database.select(`
+                    SELECT e.*, fe.gallons, fe.current_mileage, fe.fuel_type, v.make, v.model, v.year 
+                    FROM Expenses e
+                    JOIN FuelExpenses fe ON e.expense_id = fe.expense_id
+                    LEFT JOIN Vehicles v ON e.vin = v.vin
+                    WHERE e.category = 'Fuel'
+                    ORDER BY e.date DESC
                 `);
             } else {
-                fuelLogsToShow = await Database.select(`
-                    SELECT fl.*, v.make, v.model, v.year 
-                    FROM FuelLog fl
-                    LEFT JOIN Vehicles v ON fl.vin = v.vin
-                    JOIN Owns o ON fl.vin = o.vin
-                    WHERE o.user_id = ${userId}
-                    ORDER BY fl.date_filled DESC
+                fuelExpensesToShow = await Database.select(`
+                    SELECT e.*, fe.gallons, fe.current_mileage, fe.fuel_type, v.make, v.model, v.year 
+                    FROM Expenses e
+                    JOIN FuelExpenses fe ON e.expense_id = fe.expense_id
+                    LEFT JOIN Vehicles v ON e.vin = v.vin
+                    JOIN Owns o ON e.vin = o.vin
+                    WHERE e.category = 'Fuel' AND o.user_id = ${userId}
+                    ORDER BY e.date DESC
                 `);
             }
 
@@ -479,13 +505,13 @@ const fuelManager = {
             csvContent += `Average Price per Gallon,${Utils.formatCurrency(fuelSummary.avgPricePerGallon)}\n`;
             csvContent += `Total Fill-ups,${fuelSummary.totalFillUps}\n\n`;
 
-            // Detailed Fuel Logs
-            csvContent += 'DETAILED FUEL LOGS\n';
+            // Detailed Fuel Expenses
+            csvContent += 'DETAILED FUEL EXPENSES\n';
             csvContent += 'ID,Vehicle,Date,Mileage,Gallons,Cost,Fuel Type\n';
-            fuelLogsToShow.forEach(log => {
-                const vehicle = log.make && log.model && log.year ? 
-                    `${log.year} ${log.make} ${log.model}` : 'Unknown Vehicle';
-                csvContent += `${log.fuel_log_id},"${vehicle}",${log.date_filled},${log.current_mileage},${log.gallons},${Utils.formatCurrency(log.total_cost)},${log.fuel_type}\n`;
+            fuelExpensesToShow.forEach(expense => {
+                const vehicle = expense.make && expense.model && expense.year ? 
+                    `${expense.year} ${expense.make} ${expense.model}` : 'Unknown Vehicle';
+                csvContent += `${expense.expense_id},"${vehicle}",${expense.date},${expense.current_mileage},${expense.gallons},${Utils.formatCurrency(expense.amount)},${expense.fuel_type}\n`;
             });
 
             // Download the CSV file

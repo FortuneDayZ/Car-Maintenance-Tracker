@@ -387,7 +387,7 @@ const testManager = {
 
             // Clear dependent tables (tables that reference other tables)
             await Database.executeQuery('DELETE FROM `UpcomingServices`');
-            await Database.executeQuery('DELETE FROM `FuelLog`');
+
             await Database.executeQuery('DELETE FROM `Expenses`');
             await Database.executeQuery('DELETE FROM `Parts`');
             await Database.executeQuery('DELETE FROM `ServiceRecords`');
@@ -410,7 +410,7 @@ const testManager = {
             await Database.executeQuery('ALTER TABLE `ServiceRecords` AUTO_INCREMENT = 1');
             await Database.executeQuery('ALTER TABLE `Parts` AUTO_INCREMENT = 1');
             await Database.executeQuery('ALTER TABLE `Expenses` AUTO_INCREMENT = 1');
-            await Database.executeQuery('ALTER TABLE `FuelLog` AUTO_INCREMENT = 1');
+
             await Database.executeQuery('ALTER TABLE `UpcomingServices` AUTO_INCREMENT = 1');
             await Database.executeQuery('ALTER TABLE `Reminder` AUTO_INCREMENT = 1');
             

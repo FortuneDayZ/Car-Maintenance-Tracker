@@ -674,14 +674,20 @@ const AuthManager = {
         }
     },
 
-    // Get user's fuel logs
-    getUserFuelLogs: async () => {
+    // Get user's fuel expenses
+    getUserFuelExpenses: async () => {
         if (!AuthManager.isAuthenticated) return [];
         if (AuthManager.isAdmin()) {
             try {
-                return await Database.select('SELECT * FROM FuelLog ORDER BY date_filled DESC');
+                return await Database.select(`
+                    SELECT e.*, fe.gallons, fe.current_mileage, fe.fuel_type 
+                    FROM Expenses e
+                    JOIN FuelExpenses fe ON e.expense_id = fe.expense_id
+                    WHERE e.category = 'Fuel'
+                    ORDER BY e.date DESC
+                `);
             } catch (error) {
-                console.error('Error getting all fuel logs:', error);
+                console.error('Error getting all fuel expenses:', error);
                 return [];
             }
         }
@@ -693,12 +699,14 @@ const AuthManager = {
             
             const vinList = vehicleVins.map(vin => `'${vin}'`).join(',');
             return await Database.select(`
-                SELECT * FROM FuelLog 
-                WHERE vin IN (${vinList})
-                ORDER BY date_filled DESC
+                SELECT e.*, fe.gallons, fe.current_mileage, fe.fuel_type 
+                FROM Expenses e
+                JOIN FuelExpenses fe ON e.expense_id = fe.expense_id
+                WHERE e.category = 'Fuel' AND e.vin IN (${vinList})
+                ORDER BY e.date DESC
             `);
         } catch (error) {
-            console.error('Error getting user fuel logs:', error);
+            console.error('Error getting user fuel expenses:', error);
             return [];
         }
     },

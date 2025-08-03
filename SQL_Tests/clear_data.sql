@@ -15,7 +15,7 @@ DELETE FROM `WorkedOn`;
 
 -- Clear dependent tables (tables that reference other tables)
 DELETE FROM `UpcomingServices`;
-DELETE FROM `FuelLog`;
+
 DELETE FROM `Expenses`;
 DELETE FROM `Parts`;
 DELETE FROM `ServiceRecords`;
@@ -38,7 +38,7 @@ ALTER TABLE `Mechanics` AUTO_INCREMENT = 1;
 ALTER TABLE `ServiceRecords` AUTO_INCREMENT = 1;
 ALTER TABLE `Parts` AUTO_INCREMENT = 1;
 ALTER TABLE `Expenses` AUTO_INCREMENT = 1;
-ALTER TABLE `FuelLog` AUTO_INCREMENT = 1;
+
 ALTER TABLE `UpcomingServices` AUTO_INCREMENT = 1;
 ALTER TABLE `Reminder` AUTO_INCREMENT = 1;
 
@@ -59,7 +59,7 @@ SELECT 'Parts', COUNT(*) FROM Parts
 UNION ALL
 SELECT 'Expenses', COUNT(*) FROM Expenses
 UNION ALL
-SELECT 'FuelLog', COUNT(*) FROM FuelLog
+
 UNION ALL
 SELECT 'UpcomingServices', COUNT(*) FROM UpcomingServices
 UNION ALL

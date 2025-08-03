@@ -550,15 +550,22 @@ INSERT INTO Expenses (vin, date, category, amount, description) VALUES
 ('VIN100', '2023-07-01', 'Insurance', 150.00, 'Quarterly insurance payment'),
 ('VIN150', '2023-07-01', 'Charging', 40.00, 'Monthly charging subscription');
 
--- Populate FuelLog table
-INSERT INTO FuelLog (vin, date_filled, current_mileage, gallons, total_cost, fuel_type) VALUES
-('1ABC123XYZ4567890', '2023-01-05', 14500, 12.5, 50.00, 'Regular'),
-('1ABC123XYZ4567890', '2023-01-15', 14900, 13.0, 52.50, 'Regular'),
-('2DEF456ABC7890123', '2023-02-10', 24500, 10.2, 45.90, 'Premium'),
-('3GHI789DEF0123456', '2023-03-18', 9800, 20.0, 80.00, 'Diesel'),
-('5MNO345JKL6789012', '2023-05-10', 44500, 15.5, 62.00, 'Regular'),
-('VIN141', '2023-06-20', 35500, 11.0, 44.00, 'Regular');
--- Note: FuelLog might not apply to electric vehicles like the Tesla Model S.
+-- Populate FuelExpenses table
+INSERT INTO Expenses (vin, date, category, amount, description) VALUES
+('1ABC123XYZ4567890', '2023-01-05', 'Fuel', 50.00, 'Fuel expense - 12.5 gallons of Regular'),
+('1ABC123XYZ4567890', '2023-01-15', 'Fuel', 52.50, 'Fuel expense - 13.0 gallons of Regular'),
+('2DEF456ABC7890123', '2023-02-10', 'Fuel', 45.90, 'Fuel expense - 10.2 gallons of Premium'),
+('3GHI789DEF0123456', '2023-03-18', 'Fuel', 80.00, 'Fuel expense - 20.0 gallons of Diesel'),
+('5MNO345JKL6789012', '2023-05-10', 'Fuel', 62.00, 'Fuel expense - 15.5 gallons of Regular'),
+('VIN141', '2023-06-20', 'Fuel', 44.00, 'Fuel expense - 11.0 gallons of Regular');
+
+INSERT INTO FuelExpenses (expense_id, gallons, current_mileage, fuel_type) VALUES
+(LAST_INSERT_ID()-5, 12.5, 14500, 'Regular'),
+(LAST_INSERT_ID()-4, 13.0, 14900, 'Regular'),
+(LAST_INSERT_ID()-3, 10.2, 24500, 'Premium'),
+(LAST_INSERT_ID()-2, 20.0, 9800, 'Diesel'),
+(LAST_INSERT_ID()-1, 15.5, 44500, 'Regular'),
+(LAST_INSERT_ID(), 11.0, 35500, 'Regular');
 
 -- Populate UpcomingServices table
 INSERT INTO UpcomingServices (user_id, vin, rec_date, rec_mileage, status) VALUES
@@ -580,9 +587,9 @@ INSERT INTO UpcomingServices_ServiceTypes (event_id, service_type) VALUES
 (6, 'Battery Replacement');
 
 -- Populate Reminder table (FIXED: using correct table name and structure)
-INSERT INTO Reminder (event_id, message, send_date, is_sent) VALUES
-(1, 'Your Toyota Camry is due for an oil change and tire rotation soon.', '2023-07-01', 0),
-(2, 'Your Honda Civic has a scheduled brake service on 2023-08-15.', '2023-08-01', 0),
-(4, 'Reminder: Your Chevrolet Silverado is due for its next oil change.', '2023-09-25', 0),
-(5, 'URGENT: Your Nissan Altima is overdue for a transmission service.', '2023-11-01', 0),
-(6, 'Your Tesla Model S has an upcoming battery check.', '2023-12-15', 0);
+INSERT INTO Reminder (event_id, message, send_date, was_sent, was_read) VALUES
+(1, 'Your Toyota Camry is due for an oil change and tire rotation soon.', '2023-07-01', 0, 0),
+(2, 'Your Honda Civic has a scheduled brake service on 2023-08-15.', '2023-08-01', 0, 0),
+(4, 'Reminder: Your Chevrolet Silverado is due for its next oil change.', '2023-09-25', 0, 0),
+(5, 'URGENT: Your Nissan Altima is overdue for a transmission service.', '2023-11-01', 0, 0),
+(6, 'Your Tesla Model S has an upcoming battery check.', '2023-12-15', 0, 0);

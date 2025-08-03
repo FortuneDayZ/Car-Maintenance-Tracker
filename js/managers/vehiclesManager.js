@@ -103,15 +103,17 @@ const vehiclesManager = {
         }
 
         // Fetch vehicle fuel logs
-        let fuelLogs = [];
+        let fuelExpenses = [];
         try {
-            fuelLogs = await Database.select(`
-                SELECT * FROM FuelLog 
-                WHERE vin = '${vehicle.vin}'
-                ORDER BY date_filled DESC
+            fuelExpenses = await Database.select(`
+                SELECT e.*, fe.gallons, fe.current_mileage, fe.fuel_type 
+                FROM Expenses e
+                JOIN FuelExpenses fe ON e.expense_id = fe.expense_id
+                WHERE e.vin = '${vehicle.vin}' AND e.category = 'Fuel'
+                ORDER BY e.date DESC
             `);
         } catch (error) {
-            console.error(`Error fetching fuel logs for vehicle ${vehicle.vin}:`, error);
+            console.error(`Error fetching fuel expenses for vehicle ${vehicle.vin}:`, error);
         }
 
         // Fetch vehicle service records
@@ -193,21 +195,21 @@ const vehiclesManager = {
                                         </ul>
                                     ` : '<p class="text-muted">No expenses recorded</p>'}
                                     
-                                    <h6 class="mt-3">Fuel Logs (${fuelLogs.length})</h6>
-                                    ${fuelLogs.length > 0 ? `
-                                        <ul class="list-group list-group-flush">
-                                            ${fuelLogs.map(log => {
-                                                // Safely convert numeric values
-                                                const gallons = Number(log.gallons) || 0;
-                                                const totalCost = Number(log.total_cost) || 0;
-                                                return `
-                                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                    ${Utils.formatDate(log.date_filled)} - ${gallons.toFixed(2)} gal ${log.fuel_type}
-                                                    <span class="badge bg-info">${Utils.formatCurrency(totalCost)}</span>
-                                                </li>
-                                            `}).join('')}
+                                                        <h6 class="mt-3">Fuel Expenses (${fuelExpenses.length})</h6>
+                    ${fuelExpenses.length > 0 ? `
+                        <ul class="list-group list-group-flush">
+                                                        ${fuelExpenses.map(expense => {
+                                // Safely convert numeric values
+                                const gallons = Number(expense.gallons) || 0;
+                                const amount = Number(expense.amount) || 0;
+                                return `
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    ${Utils.formatDate(expense.date)} - ${gallons.toFixed(2)} gal ${expense.fuel_type}
+                                    <span class="badge bg-info">${Utils.formatCurrency(amount)}</span>
+                                </li>
+                            `}).join('')}
                                         </ul>
-                                    ` : '<p class="text-muted">No fuel logs</p>'}
+                                    ` : '<p class="text-muted">No fuel expenses</p>'}
                                 </div>
                             </div>
                         </div>
