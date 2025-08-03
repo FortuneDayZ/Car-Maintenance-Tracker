@@ -35,13 +35,10 @@ const AuthManager = {
                     user_id: userData.user_id,
                     username: userData.username,
                     email: userData.email,
-                    role: userData.role || (userData.is_admin === 1 ? 'admin' : 'user')
+                    role: userData.role || 'user'
                 };
                 
-                // Ensure admin role is set correctly based on database field
-                if (AuthManager.currentUser.role === 'admin') {
-                    AuthManager.currentUser.role = 'admin';
-                }
+                // Note: Role will be verified against database in validateSessionWithDatabase
                 AuthManager.isAuthenticated = true;
                 AuthManager.updateUI();
                 
@@ -81,6 +78,17 @@ const AuthManager = {
                 console.log('User no longer exists in database, clearing session');
                 AuthManager.clearSession();
                 return;
+            }
+            
+            // Update role based on current database status
+            const user = users[0];
+            const newRole = user.is_admin === 1 ? 'admin' : 'user';
+            
+            if (AuthManager.currentUser.role !== newRole) {
+                console.log(`Role updated from ${AuthManager.currentUser.role} to ${newRole}`);
+                AuthManager.currentUser.role = newRole;
+                sessionStorage.setItem('currentUser', JSON.stringify(AuthManager.currentUser));
+                AuthManager.updateUI();
             }
             
             // Session is valid, refresh all tables
@@ -295,9 +303,11 @@ const AuthManager = {
                     role: user.is_admin === 1 ? 'admin' : 'user'
                 };
                 
-                // Ensure admin role is set correctly based on database field
-                if (AuthManager.currentUser.role === 'admin') {
+                // Double-check admin role is set correctly based on database field
+                if (user.is_admin === 1) {
                     AuthManager.currentUser.role = 'admin';
+                } else {
+                    AuthManager.currentUser.role = 'user';
                 }
                 
                 AuthManager.isAuthenticated = true;

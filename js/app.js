@@ -66,7 +66,12 @@ const App = {
         fuelManager.init();
         maintenanceManager.init();
         analyticsManager.init();
-        testManager.init();
+        
+        // Initialize test manager with a delay to ensure authentication is fully established
+        // This prevents race conditions where the test manager tries to verify admin status too early
+        setTimeout(() => {
+            testManager.init();
+        }, 300);
     },
 
     initializeAuthentication: () => {
@@ -130,6 +135,13 @@ const App = {
                 link.classList.add('active');
             }
         });
+
+        // Special handling for test section - refresh it when accessed
+        if (sectionName === 'test' && window.testManager) {
+            setTimeout(() => {
+                testManager.refresh();
+            }, 100);
+        }
     },
 
     restoreActiveSection: () => {

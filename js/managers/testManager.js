@@ -1,26 +1,86 @@
-// Test Manager - Demonstrates database connection with raw SQL
+// The Test Manager is a powerful tool that allows administrators to interact directly with the database
+// It provides a safe environment for running SQL queries and testing database connectivity
 const testManager = {
     container: null,
 
+    // This function performs a security check by querying the database directly to verify admin status
+    // It ensures that only users with actual admin privileges in the database can access sensitive operations
+    verifyAdminStatus: async () => {
+        // Wait a moment for authentication to be fully established
+        if (!AuthManager.isAuthenticated || !AuthManager.currentUser) {
+            // If not authenticated, wait a bit and check again (in case session is still loading)
+            await new Promise(resolve => setTimeout(resolve, 200));
+            if (!AuthManager.isAuthenticated || !AuthManager.currentUser) {
+                return { isAdmin: false, error: 'Not authenticated' };
+            }
+        }
+
+        try {
+            const adminCheck = await Database.select(`SELECT is_admin FROM Users WHERE user_id = ${AuthManager.currentUser.user_id} AND username = '${AuthManager.currentUser.username}'`);
+            
+            if (adminCheck.length === 0) {
+                return { isAdmin: false, error: 'User not found in database' };
+            }
+            
+            return { isAdmin: adminCheck[0].is_admin === 1, error: null };
+        } catch (error) {
+            console.error('Error checking admin status:', error);
+            return { isAdmin: false, error: error.message };
+        }
+    },
+
     init: () => {
         testManager.container = document.getElementById('test-table-container');
-        testManager.render();
+        // The init function waits for authentication to be fully established before rendering
+        // This prevents race conditions where the render function runs before the session is ready
+        setTimeout(() => {
+            testManager.render();
+        }, 100);
+    },
+
+    // This function can be called to manually refresh the test section
+    // Useful when switching to the test section after login
+    refresh: () => {
+        if (testManager.container) {
+            testManager.render();
+        }
     },
 
     render: async () => {
-        // Check if user is admin
-        if (!AuthManager.isAuthenticated || AuthManager.currentUser?.role !== 'admin') {
+        // The render function first validates the user's admin privileges before displaying the interface
+        // This prevents unauthorized access to sensitive database operations
+        const adminStatus = await testManager.verifyAdminStatus();
+        
+        if (!adminStatus.isAdmin) {
+            let errorMessage = 'This section is only available to administrators.';
+            
+            if (adminStatus.error === 'Not authenticated') {
+                errorMessage = 'Please log in to access this section.';
+                // If not authenticated, try again after a short delay (in case session is still loading)
+                setTimeout(() => {
+                    if (AuthManager.isAuthenticated && AuthManager.currentUser) {
+                        testManager.render();
+                    }
+                }, 500);
+            } else if (adminStatus.error === 'User not found in database') {
+                errorMessage = 'User not found in database. Please log in again.';
+            } else if (adminStatus.error) {
+                errorMessage = `Database error: ${adminStatus.error}`;
+            }
+            
             testManager.container.innerHTML = `
                 <div class="alert alert-danger">
                     <h4><i class="fas fa-exclamation-triangle"></i> Access Denied</h4>
-                    <p>This section is only available to administrators.</p>
+                    <p>${errorMessage}</p>
+                    ${AuthManager.currentUser ? `<p>Current user: ${AuthManager.currentUser.username} (ID: ${AuthManager.currentUser.user_id})</p>` : ''}
                 </div>
             `;
             return;
         }
 
         try {
-            // Test database connection
+            // The system attempts to establish a connection with the database to ensure it's operational
+            // This step is crucial for all subsequent database operations
             const isConnected = await Database.testConnection();
             
             if (!isConnected) {
@@ -91,6 +151,9 @@ const testManager = {
                     <button class="btn btn-warning" onclick="testManager.restoreAdmin()">
                         <i class="fas fa-user-shield"></i> Restore Admin
                     </button>
+                    <button class="btn btn-info" onclick="testManager.debugAdminStatus()">
+                        <i class="fas fa-bug"></i> Debug Admin Status
+                    </button>
                 </div>
             `;
             
@@ -106,8 +169,10 @@ const testManager = {
     },
 
     testConnection: async () => {
-        // Check if user is admin
-        if (!AuthManager.isAuthenticated || AuthManager.currentUser?.role !== 'admin') {
+        // Verify admin status from database
+        const adminStatus = await testManager.verifyAdminStatus();
+        
+        if (!adminStatus.isAdmin) {
             Utils.showAlert('Access denied. Admin privileges required.', 'danger');
             return;
         }
@@ -126,8 +191,10 @@ const testManager = {
     },
 
     runCustomQuery: async () => {
-        // Check if user is admin
-        if (!AuthManager.isAuthenticated || AuthManager.currentUser?.role !== 'admin') {
+        // Verify admin status from database
+        const adminStatus = await testManager.verifyAdminStatus();
+        
+        if (!adminStatus.isAdmin) {
             Utils.showAlert('Access denied. Admin privileges required.', 'danger');
             return;
         }
@@ -144,9 +211,11 @@ const testManager = {
     },
 
 
-    showInsertDataConfirmation: () => {
-        // Check if user is admin
-        if (!AuthManager.isAuthenticated || AuthManager.currentUser?.role !== 'admin') {
+    showInsertDataConfirmation: async () => {
+        // Verify admin status from database
+        const adminStatus = await testManager.verifyAdminStatus();
+        
+        if (!adminStatus.isAdmin) {
             Utils.showAlert('Access denied. Admin privileges required.', 'danger');
             return;
         }
@@ -323,9 +392,11 @@ const testManager = {
             console.error("Error inserting sample data:", error);
             Utils.showAlert(`Error inserting sample data: ${error.message}`, "danger");
         }
-    },    showClearDataConfirmation: () => {
-        // Check if user is admin
-        if (!AuthManager.isAuthenticated || AuthManager.currentUser?.role !== 'admin') {
+    },    showClearDataConfirmation: async () => {
+        // Verify admin status from database
+        const adminStatus = await testManager.verifyAdminStatus();
+        
+        if (!adminStatus.isAdmin) {
             Utils.showAlert('Access denied. Admin privileges required.', 'danger');
             return;
         }
@@ -333,19 +404,20 @@ const testManager = {
         const modalBody = `
             <div class="alert alert-warning">
                 <h5><i class="fas fa-eraser"></i> Clear All Data</h5>
-                <p><strong>You are about to clear ALL data from the database.</strong></p>
-                <p>This will remove all data but preserve the table structure:</p>
+                <p><strong>You are about to clear all user data from the database.</strong></p>
+                <p>This operation will remove all data while preserving important system components:</p>
                 <ul>
-                    <li>All user data (except admin accounts)</li>
-                    <li>All vehicle information</li>
-                    <li>All service records</li>
-                    <li>All upcoming services</li>
+                    <li>All regular user accounts (admin accounts will be preserved)</li>
+                    <li>All vehicle information and ownership records</li>
+                    <li>All service records and maintenance history</li>
+                    <li>All upcoming services and reminders</li>
                     <li>All expenses and fuel logs</li>
                     <li>All parts and mechanics data</li>
                     <li>All shop information</li>
                 </ul>
-                <p><strong>✅ Safe: Table structure will be preserved</strong></p>
-                <p><strong>✅ Safe: Admin login/password information will be preserved</strong></p>
+                <p><strong>✅ Safe: Database table structure will be preserved</strong></p>
+                <p><strong>✅ Safe: Admin accounts and login credentials will be preserved</strong></p>
+                <p><strong>✅ Safe: Service types will be re-initialized</strong></p>
                 <hr>
                 <p>To confirm, type <code>CLEAR DATA</code> in the field below:</p>
                 <input type="text" class="form-control" id="clearConfirmation" placeholder="Type: CLEAR DATA">
@@ -362,7 +434,7 @@ const testManager = {
 
             try {
                 await testManager.clearAllData();
-                Utils.showAlert('All data cleared successfully!', 'success');
+                Utils.showAlert('All user data cleared successfully! Admin accounts have been preserved.', 'success');
                 // Refresh the entire page after clearing data
                 setTimeout(() => {
                     window.location.reload();
@@ -375,8 +447,15 @@ const testManager = {
 
     clearAllData: async () => {
         try {
-            // Disable safe update mode
+            // The clearAllData function safely removes all user data while preserving admin accounts
+            // This ensures that administrators can always access the system after a data reset
+            
+            // Disable safe update mode to allow bulk deletions
             await Database.executeQuery('SET SQL_SAFE_UPDATES = 0');
+
+            // First, preserve admin users by backing them up
+            const adminUsers = await Database.select('SELECT * FROM Users WHERE is_admin = 1');
+            console.log(`Preserving ${adminUsers.length} admin user(s) during data clear`);
 
             // Clear junction tables first (they reference other tables)
             await Database.executeQuery('DELETE FROM `Reminder`');
@@ -387,7 +466,6 @@ const testManager = {
 
             // Clear dependent tables (tables that reference other tables)
             await Database.executeQuery('DELETE FROM `UpcomingServices`');
-
             await Database.executeQuery('DELETE FROM `Expenses`');
             await Database.executeQuery('DELETE FROM `Parts`');
             await Database.executeQuery('DELETE FROM `ServiceRecords`');
@@ -398,27 +476,27 @@ const testManager = {
             await Database.executeQuery('DELETE FROM `ServiceTypes`');
             await Database.executeQuery('DELETE FROM `CarShops`');
             await Database.executeQuery('DELETE FROM `Vehicles`');
-            await Database.executeQuery('DELETE FROM `Users`');
+            
+            // Clear all non-admin users only
+            await Database.executeQuery('DELETE FROM `Users` WHERE is_admin = 0');
 
             // Re-enable safe update mode
             await Database.executeQuery('SET SQL_SAFE_UPDATES = 1');
 
-            // Reset auto-increment counters
+            // Reset auto-increment counters for all tables
             await Database.executeQuery('ALTER TABLE `Users` AUTO_INCREMENT = 1');
             await Database.executeQuery('ALTER TABLE `CarShops` AUTO_INCREMENT = 1');
             await Database.executeQuery('ALTER TABLE `Mechanics` AUTO_INCREMENT = 1');
             await Database.executeQuery('ALTER TABLE `ServiceRecords` AUTO_INCREMENT = 1');
             await Database.executeQuery('ALTER TABLE `Parts` AUTO_INCREMENT = 1');
             await Database.executeQuery('ALTER TABLE `Expenses` AUTO_INCREMENT = 1');
-
             await Database.executeQuery('ALTER TABLE `UpcomingServices` AUTO_INCREMENT = 1');
             await Database.executeQuery('ALTER TABLE `Reminder` AUTO_INCREMENT = 1');
             
-            // Re-insert admin user and service types
-            await testManager.insertAdminUser();
+            // Re-insert service types (admin users are already preserved)
             await testManager.insertServiceTypes();
             
-            console.log('All data cleared successfully');
+            console.log('All user data cleared successfully - admin accounts preserved');
             
             // Logout current user and show login modal since data was cleared
             if (window.AuthManager) {
@@ -468,8 +546,10 @@ const testManager = {
     },
 
     restoreAdmin: async () => {
-        // Check if user is admin
-        if (!AuthManager.isAuthenticated || AuthManager.currentUser?.role !== 'admin') {
+        // Verify admin status from database
+        const adminStatus = await testManager.verifyAdminStatus();
+        
+        if (!adminStatus.isAdmin) {
             Utils.showAlert('Access denied. Admin privileges required.', 'danger');
             return;
         }
@@ -495,8 +575,38 @@ const testManager = {
         } catch (error) {
             Utils.showAlert(`Error restoring admin user: ${error.message}`, 'danger');
         }
+    },
+
+    // Debug function to check current user's admin status
+    debugAdminStatus: async () => {
+        console.log('=== Admin Status Debug ===');
+        console.log('AuthManager.isAuthenticated:', AuthManager.isAuthenticated);
+        console.log('AuthManager.currentUser:', AuthManager.currentUser);
+        
+        if (AuthManager.currentUser) {
+            try {
+                const adminCheck = await Database.select(`SELECT user_id, username, is_admin FROM Users WHERE user_id = ${AuthManager.currentUser.user_id}`);
+                console.log('Database admin check:', adminCheck);
+                
+                if (adminCheck.length > 0) {
+                    const user = adminCheck[0];
+                    console.log('User found in database:', user);
+                    console.log('is_admin value:', user.is_admin);
+                    console.log('is_admin === 1:', user.is_admin === 1);
+                    console.log('Current role in session:', AuthManager.currentUser.role);
+                } else {
+                    console.log('User not found in database');
+                }
+            } catch (error) {
+                console.error('Error checking admin status:', error);
+            }
+        }
+        console.log('=== End Debug ===');
     }
 };
 
 // Make testManager available globally
-window.testManager = testManager; 
+window.testManager = testManager;
+
+// Make debug function available globally for console access
+window.debugAdminStatus = testManager.debugAdminStatus; 

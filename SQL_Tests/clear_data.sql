@@ -59,8 +59,6 @@ SELECT 'Parts', COUNT(*) FROM Parts
 UNION ALL
 SELECT 'Expenses', COUNT(*) FROM Expenses
 UNION ALL
-
-UNION ALL
 SELECT 'UpcomingServices', COUNT(*) FROM UpcomingServices
 UNION ALL
 SELECT 'Reminder', COUNT(*) FROM Reminder; 
