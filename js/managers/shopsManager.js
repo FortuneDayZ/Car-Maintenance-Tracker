@@ -23,15 +23,7 @@ const shopsManager = {
             } else {
                 // Regular users can only see shops that have mechanics who worked on their vehicles
                 const userId = AuthManager.currentUser.user_id;
-                shops = await Database.select(`
-                    SELECT DISTINCT cs.* 
-                    FROM CarShops cs
-                    JOIN Mechanics m ON cs.car_shop_id = m.car_shop_id
-                    JOIN WorkedOn wo ON m.mechanic_id = wo.mechanic_id
-                    JOIN ServiceRecords sr ON wo.service_id = sr.service_id
-                    JOIN Owns o ON sr.vin = o.vin
-                    WHERE o.user_id = ${userId}
-                `);
+                shops = await Database.select(`SELECT * FROM CarShops WHERE user_id = ${userId}`);
             }
             
             // Create table rows asynchronously
@@ -276,9 +268,9 @@ const shopsManager = {
                 Utils.showAlert('Car shop updated successfully', 'success');
             } else {
                 // Add new shop to database
-                const sql = `INSERT INTO CarShops (name, street, city, state, zip_code, phone_number) 
-                           VALUES ('${shopData.name}', '${shopData.street}', '${shopData.city}', '${shopData.state}', '${shopData.zip_code}', '${shopData.phone_number}')`;
-                
+                const userId = AuthManager.currentUser.user_id;
+                sql = `INSERT INTO CarShops (name, street, city, state, zip_code, phone_number, user_id) VALUES ('${shopData.name}', '${shopData.street}', '${shopData.city}', '${shopData.state}', '${shopData.zip_code}', '${shopData.phone_number}', ${userId})`;
+
                 await Database.insert(sql);
                 Utils.showAlert('Car shop added successfully', 'success');
             }
