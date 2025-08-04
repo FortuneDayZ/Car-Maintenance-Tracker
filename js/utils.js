@@ -273,9 +273,7 @@ const Utils = {
             if (window.expensesManager) {
                 await expensesManager.render();
             }
-            if (window.fuelManager) {
-                await fuelManager.render();
-            }
+
             if (window.servicesManager) {
                 await servicesManager.render();
             }

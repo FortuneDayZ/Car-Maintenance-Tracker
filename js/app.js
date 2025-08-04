@@ -63,7 +63,7 @@ const App = {
         servicesManager.init();
         partsManager.init();
         expensesManager.init();
-        fuelManager.init();
+
         maintenanceManager.init();
         analyticsManager.init();
         
@@ -187,7 +187,7 @@ const App = {
             await servicesManager.render();
             await partsManager.render();
             await expensesManager.render();
-            await fuelManager.render();
+
             await maintenanceManager.render();
             await analyticsManager.render();
             

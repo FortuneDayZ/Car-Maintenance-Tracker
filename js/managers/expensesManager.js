@@ -19,21 +19,41 @@ const expensesManager = {
             const userId = AuthManager.currentUser?.user_id;
             const isAdmin = AuthManager.isAdmin();
             
-            // Get expenses from database based on user permissions
+            // Get expenses from database based on user permissions with detailed information
             let expensesToShow = [];
             if (isAdmin) {
                 expensesToShow = await Database.select(`
-                    SELECT e.*, v.make, v.model, v.year 
+                    SELECT 
+                        e.*, 
+                        v.make, v.model, v.year,
+                        me.service_id,
+                        re.renewal_date, re.renewal_period, re.state,
+                        ie.policy_number, ie.start_date, ie.end_date, ie.provider_name,
+                        fe.gallons, fe.current_mileage, fe.fuel_type
                     FROM Expenses e
                     LEFT JOIN Vehicles v ON e.vin = v.vin
+                    LEFT JOIN MaintenanceExpenses me ON e.expense_id = me.expense_id
+                    LEFT JOIN RegistrationExpenses re ON e.expense_id = re.expense_id
+                    LEFT JOIN InsuranceExpenses ie ON e.expense_id = ie.expense_id
+                    LEFT JOIN FuelExpenses fe ON e.expense_id = fe.expense_id
                     ORDER BY e.date DESC
                 `);
             } else {
                 // Regular users can only see their own expenses
                 expensesToShow = await Database.select(`
-                    SELECT e.*, v.make, v.model, v.year 
+                    SELECT 
+                        e.*, 
+                        v.make, v.model, v.year,
+                        me.service_id,
+                        re.renewal_date, re.renewal_period, re.state,
+                        ie.policy_number, ie.start_date, ie.end_date, ie.provider_name,
+                        fe.gallons, fe.current_mileage, fe.fuel_type
                     FROM Expenses e
                     LEFT JOIN Vehicles v ON e.vin = v.vin
+                    LEFT JOIN MaintenanceExpenses me ON e.expense_id = me.expense_id
+                    LEFT JOIN RegistrationExpenses re ON e.expense_id = re.expense_id
+                    LEFT JOIN InsuranceExpenses ie ON e.expense_id = ie.expense_id
+                    LEFT JOIN FuelExpenses fe ON e.expense_id = fe.expense_id
                     JOIN Owns o ON e.vin = o.vin
                     WHERE o.user_id = ${userId}
                     ORDER BY e.date DESC
@@ -103,6 +123,7 @@ const expensesManager = {
                                 <th>Category</th>
                                 <th>Amount</th>
                                 <th>Description</th>
+                                <th>Details</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -132,6 +153,33 @@ const expensesManager = {
         const vehicle = expense.make && expense.model && expense.year ? 
             `${expense.year} ${expense.make} ${expense.model}` : 'Unknown Vehicle';
         
+        // Create details based on expense type
+        let details = '';
+        switch (expense.category) {
+            case 'Maintenance':
+                details = expense.service_id ? 
+                    `<span class="badge bg-info">Service ID: ${expense.service_id}</span>` : 
+                    '<span class="badge bg-secondary">No Service Record</span>';
+                break;
+            case 'Registration':
+                details = expense.renewal_date ? 
+                    `<span class="badge bg-warning">Renewal: ${Utils.formatDate(expense.renewal_date)}</span>` : 
+                    '<span class="badge bg-secondary">No Renewal Info</span>';
+                break;
+            case 'Insurance':
+                details = expense.policy_number ? 
+                    `<span class="badge bg-primary">Policy: ${expense.policy_number}</span>` : 
+                    '<span class="badge bg-secondary">No Policy Info</span>';
+                break;
+            case 'Fuel':
+                details = expense.gallons ? 
+                    `<span class="badge bg-success">${expense.gallons} gal</span>` : 
+                    '<span class="badge bg-secondary">No Fuel Info</span>';
+                break;
+            default:
+                details = '<span class="badge bg-secondary">Miscellaneous</span>';
+        }
+        
         return `
             <tr>
                 <td>${expense.expense_id}</td>
@@ -140,6 +188,7 @@ const expensesManager = {
                 <td><span class="badge bg-secondary">${expense.category}</span></td>
                 <td>${Utils.formatCurrency(expense.amount)}</td>
                 <td>${expense.description}</td>
+                <td>${details}</td>
                 <td>
                     <button class="btn btn-sm btn-primary" onclick="expensesManager.showEditForm(${expense.expense_id})">
                         <i class="fas fa-edit"></i>
@@ -178,43 +227,235 @@ const expensesManager = {
                 text: `${vehicle.year} ${vehicle.make} ${vehicle.model} (${vehicle.vin})`
             }));
 
-        const categoryOptions = [
-            { value: 'Maintenance', text: 'Maintenance' },
-            { value: 'Fuel', text: 'Fuel' },
-            { value: 'Registration', text: 'Registration' },
-            { value: 'Insurance', text: 'Insurance' },
-            { value: 'Misc', text: 'Miscellaneous' }
-        ];
+            // Remove Maintenance from dropdown since it's auto-created
+            const categoryOptions = [
+                { value: 'Fuel', text: 'Fuel' },
+                { value: 'Registration', text: 'Registration' },
+                { value: 'Insurance', text: 'Insurance' },
+                { value: 'Misc', text: 'Miscellaneous' }
+            ];
 
-        const formContent = `
-            <form id="expenseForm">
-                ${Utils.createFormField('Vehicle', 'vin', 'select', true, vehicleOptions).outerHTML}
-                ${Utils.createFormField('Date', 'date', 'date', true).outerHTML}
-                ${Utils.createFormField('Category', 'category', 'select', true, categoryOptions).outerHTML}
-                ${Utils.createFormField('Amount', 'amount', 'number', true).outerHTML}
-                ${Utils.createFormField('Description', 'description', 'textarea', true).outerHTML}
-            </form>
-        `;
+            const formContent = `
+                <form id="expenseForm">
+                    ${Utils.createFormField('Vehicle', 'vin', 'select', true, vehicleOptions).outerHTML}
+                    ${Utils.createFormField('Date', 'date', 'date', true).outerHTML}
+                    ${Utils.createFormField('Category', 'category', 'select', true, categoryOptions).outerHTML}
+                    ${Utils.createFormField('Amount', 'amount', 'number', true).outerHTML}
+                    ${Utils.createFormField('Description', 'description', 'textarea', true).outerHTML}
+                    
+                    <!-- Dynamic fields container -->
+                    <div id="dynamicFields"></div>
+                </form>
+            `;
 
-        Utils.ModalManager.show('Add New Expense', formContent, () => expensesManager.saveExpense());
+            Utils.ModalManager.show('Add New Expense', formContent, () => expensesManager.saveExpense());
+            
+            // Add event listeners
+            const categorySelect = document.getElementById('category');
+            const vehicleSelect = document.getElementById('vin');
+            
+            categorySelect.addEventListener('change', () => expensesManager.updateDynamicFields(null));
+            vehicleSelect.addEventListener('change', () => expensesManager.updateDynamicFields(null));
+            
+            // Initialize dynamic fields
+            expensesManager.updateDynamicFields(null);
         } catch (error) {
             console.error('Error loading vehicles for expense form:', error);
             Utils.showAlert(`Error loading vehicles: ${error.message}`, 'danger');
         }
     },
 
+    loadServiceOptions: async (vin, container, existingData = null) => {
+        try {
+            const services = await Database.select(`
+                SELECT service_id, service_date, description, cost 
+                FROM ServiceRecords 
+                WHERE vin = '${vin}' 
+                ORDER BY service_date DESC
+            `);
+            
+            const serviceOptions = services.map(service => ({
+                value: service.service_id,
+                text: `${service.service_date} - ${service.description} (${Utils.formatCurrency(service.cost)})`
+            }));
+            
+            container.innerHTML = `
+                ${Utils.createFormField('Service Record', 'service_id', 'select', false, serviceOptions).outerHTML}
+            `;
+            
+            // Populate with existing data if available
+            if (existingData && existingData.service_id) {
+                setTimeout(() => {
+                    const serviceIdField = document.getElementById('service_id');
+                    if (serviceIdField) serviceIdField.value = existingData.service_id;
+                }, 50);
+            }
+        } catch (error) {
+            console.error('Error loading service options:', error);
+            container.innerHTML = `
+                ${Utils.createFormField('Service ID', 'service_id', 'number', false).outerHTML}
+            `;
+            
+            // Populate with existing data if available
+            if (existingData && existingData.service_id) {
+                setTimeout(() => {
+                    const serviceIdField = document.getElementById('service_id');
+                    if (serviceIdField) serviceIdField.value = existingData.service_id;
+                }, 50);
+            }
+        }
+    },
+
+    updateDynamicFields: (existingData = null) => {
+        const categoryElement = document.getElementById('category');
+        const dynamicFieldsContainer = document.getElementById('dynamicFields');
+        
+        // Check if elements exist
+        if (!categoryElement || !dynamicFieldsContainer) {
+            console.error('Required elements not found:', { 
+                categoryElement: !!categoryElement, 
+                dynamicFieldsContainer: !!dynamicFieldsContainer 
+            });
+            return;
+        }
+        
+        const category = categoryElement.value;
+        
+        // Clear existing dynamic fields
+        dynamicFieldsContainer.innerHTML = '';
+        
+        switch (category) {
+            case 'Maintenance':
+                // Get service records for the selected vehicle
+                const vin = document.getElementById('vin').value;
+                if (vin) {
+                    expensesManager.loadServiceOptions(vin, dynamicFieldsContainer, existingData);
+                } else {
+                    dynamicFieldsContainer.innerHTML = `
+                        ${Utils.createFormField('Service ID', 'service_id', 'number', false).outerHTML}
+                    `;
+                    // Populate with existing data if available
+                    if (existingData && existingData.service_id) {
+                        setTimeout(() => {
+                            const serviceIdField = document.getElementById('service_id');
+                            if (serviceIdField) serviceIdField.value = existingData.service_id;
+                        }, 50);
+                    }
+                }
+                break;
+            case 'Registration':
+                dynamicFieldsContainer.innerHTML = `
+                    ${Utils.createFormField('Renewal Date', 'renewal_date', 'date', true).outerHTML}
+                    ${Utils.createFormField('Renewal Period', 'renewal_period', 'text', true).outerHTML}
+                    ${Utils.createFormField('State', 'state', 'text', true).outerHTML}
+                `;
+                // Populate with existing data if available
+                if (existingData) {
+                    setTimeout(() => {
+                        if (existingData.renewal_date) {
+                            const renewalDateField = document.getElementById('renewal_date');
+                            if (renewalDateField) renewalDateField.value = existingData.renewal_date;
+                        }
+                        if (existingData.renewal_period) {
+                            const renewalPeriodField = document.getElementById('renewal_period');
+                            if (renewalPeriodField) renewalPeriodField.value = existingData.renewal_period;
+                        }
+                        if (existingData.state) {
+                            const stateField = document.getElementById('state');
+                            if (stateField) stateField.value = existingData.state;
+                        }
+                    }, 50);
+                }
+                break;
+            case 'Insurance':
+                dynamicFieldsContainer.innerHTML = `
+                    ${Utils.createFormField('Policy Number', 'policy_number', 'text', true).outerHTML}
+                    ${Utils.createFormField('Start Date', 'start_date', 'date', true).outerHTML}
+                    ${Utils.createFormField('End Date', 'end_date', 'date', true).outerHTML}
+                    ${Utils.createFormField('Provider Name', 'provider_name', 'text', true).outerHTML}
+                `;
+                // Populate with existing data if available
+                if (existingData) {
+                    setTimeout(() => {
+                        if (existingData.policy_number) {
+                            const policyNumberField = document.getElementById('policy_number');
+                            if (policyNumberField) policyNumberField.value = existingData.policy_number;
+                        }
+                        if (existingData.start_date) {
+                            const startDateField = document.getElementById('start_date');
+                            if (startDateField) startDateField.value = existingData.start_date;
+                        }
+                        if (existingData.end_date) {
+                            const endDateField = document.getElementById('end_date');
+                            if (endDateField) endDateField.value = existingData.end_date;
+                        }
+                        if (existingData.provider_name) {
+                            const providerNameField = document.getElementById('provider_name');
+                            if (providerNameField) providerNameField.value = existingData.provider_name;
+                        }
+                    }, 50);
+                }
+                break;
+            case 'Fuel':
+                dynamicFieldsContainer.innerHTML = `
+                    ${Utils.createFormField('Gallons', 'gallons', 'number', true).outerHTML}
+                    ${Utils.createFormField('Current Mileage', 'current_mileage', 'number', true).outerHTML}
+                    ${Utils.createFormField('Fuel Type', 'fuel_type', 'text', true).outerHTML}
+                `;
+                // Populate with existing data if available
+                if (existingData) {
+                    setTimeout(() => {
+                        if (existingData.gallons) {
+                            const gallonsField = document.getElementById('gallons');
+                            if (gallonsField) gallonsField.value = existingData.gallons;
+                        }
+                        if (existingData.current_mileage) {
+                            const currentMileageField = document.getElementById('current_mileage');
+                            if (currentMileageField) currentMileageField.value = existingData.current_mileage;
+                        }
+                        if (existingData.fuel_type) {
+                            const fuelTypeField = document.getElementById('fuel_type');
+                            if (fuelTypeField) fuelTypeField.value = existingData.fuel_type;
+                        }
+                    }, 50);
+                }
+                break;
+            case 'Misc':
+                // No additional fields for miscellaneous expenses
+                break;
+            default:
+                console.log('Unknown category:', category);
+                break;
+        }
+    },
+
     showEditForm: async (expenseId) => {
         try {
-            const expenses = await Database.select(`SELECT * FROM Expenses WHERE expense_id = ${expenseId}`);
+            // Get expense with all related data
+            const expenses = await Database.select(`
+                SELECT 
+                    e.*,
+                    me.service_id,
+                    re.renewal_date, re.renewal_period, re.state,
+                    ie.policy_number, ie.start_date, ie.end_date, ie.provider_name,
+                    fe.gallons, fe.current_mileage, fe.fuel_type
+                FROM Expenses e
+                LEFT JOIN MaintenanceExpenses me ON e.expense_id = me.expense_id
+                LEFT JOIN RegistrationExpenses re ON e.expense_id = re.expense_id
+                LEFT JOIN InsuranceExpenses ie ON e.expense_id = ie.expense_id
+                LEFT JOIN FuelExpenses fe ON e.expense_id = fe.expense_id
+                WHERE e.expense_id = ${expenseId}
+            `);
             const expense = expenses[0];
             if (!expense) return;
 
-                        const vehicles = await Database.select('SELECT vin, make, model, year FROM Vehicles');
+            const vehicles = await Database.select('SELECT vin, make, model, year FROM Vehicles');
             const vehicleOptions = vehicles.map(vehicle => ({
                 value: vehicle.vin,
                 text: `${vehicle.year} ${vehicle.make} ${vehicle.model} (${vehicle.vin})`
             }));
 
+            // Include Maintenance in edit form since it might be edited
             const categoryOptions = [
                 { value: 'Maintenance', text: 'Maintenance' },
                 { value: 'Fuel', text: 'Fuel' },
@@ -230,10 +471,34 @@ const expensesManager = {
                     ${Utils.createFormField('Category', 'category', 'select', true, categoryOptions).outerHTML}
                     ${Utils.createFormField('Amount', 'amount', 'number', true).outerHTML}
                     ${Utils.createFormField('Description', 'description', 'textarea', true).outerHTML}
+                    
+                    <!-- Dynamic fields container -->
+                    <div id="dynamicFields"></div>
                 </form>
             `;
 
             Utils.ModalManager.show('Edit Expense', formContent, () => expensesManager.saveExpense(expenseId));
+            
+            // Add event listeners
+            const categorySelect = document.getElementById('category');
+            const vehicleSelect = document.getElementById('vin');
+            
+            // Create a function to get current form data for dynamic fields
+            const getCurrentFormData = () => {
+                const currentCategory = document.getElementById('category').value;
+                const currentVin = document.getElementById('vin').value;
+                
+                // Return the original expense data if category/vehicle hasn't changed
+                if (currentCategory === expense.category && currentVin === expense.vin) {
+                    return expense;
+                }
+                
+                // Return null if category/vehicle has changed (user wants to start fresh)
+                return null;
+            };
+            
+            categorySelect.addEventListener('change', () => expensesManager.updateDynamicFields(getCurrentFormData()));
+            vehicleSelect.addEventListener('change', () => expensesManager.updateDynamicFields(getCurrentFormData()));
             
             // Populate form with existing data after modal is shown
             Utils.populateForm({
@@ -243,6 +508,23 @@ const expensesManager = {
                 amount: expense.amount,
                 description: expense.description
             });
+            
+            // Initialize dynamic fields and populate them with existing data
+            // Use polling to ensure DOM is fully rendered
+            const initializeDynamicFields = () => {
+                const categoryElement = document.getElementById('category');
+                const dynamicFieldsContainer = document.getElementById('dynamicFields');
+                
+                if (categoryElement && dynamicFieldsContainer) {
+                    console.log('Elements found, initializing dynamic fields for expense:', expense);
+                    expensesManager.updateDynamicFields(expense);
+                } else {
+                    console.log('Elements not ready yet, retrying...');
+                    setTimeout(initializeDynamicFields, 50);
+                }
+            };
+            
+            setTimeout(initializeDynamicFields, 100);
         } catch (error) {
             console.error('Error loading expense for edit:', error);
             Utils.showAlert(`Error loading expense: ${error.message}`, 'danger');
@@ -293,15 +575,22 @@ const expensesManager = {
         }
 
         try {
+            let newExpenseId;
+            
             if (expenseId) {
                 // Update existing expense
                 await Database.updateRecord('Expenses', expenseData, `expense_id = ${expenseId}`);
+                newExpenseId = expenseId;
                 Utils.showAlert('Expense updated successfully', 'success');
             } else {
                 // Add new expense
-                await Database.insertRecord('Expenses', expenseData);
+                const result = await Database.insertRecord('Expenses', expenseData);
+                newExpenseId = result.insertId;
                 Utils.showAlert('Expense added successfully', 'success');
             }
+
+            // Handle category-specific data
+            await expensesManager.saveCategorySpecificData(newExpenseId, expenseData.category, formData);
 
             Utils.ModalManager.hide();
             
@@ -310,6 +599,107 @@ const expensesManager = {
         } catch (error) {
             console.error('Error saving expense:', error);
             Utils.showAlert(`Error saving expense: ${error.message}`, 'danger');
+        }
+    },
+
+    saveCategorySpecificData: async (expenseId, category, formData) => {
+        try {
+            // First, delete any existing category-specific records
+            await Database.deleteRecords('MaintenanceExpenses', `expense_id = ${expenseId}`);
+            await Database.deleteRecords('RegistrationExpenses', `expense_id = ${expenseId}`);
+            await Database.deleteRecords('InsuranceExpenses', `expense_id = ${expenseId}`);
+            await Database.deleteRecords('FuelExpenses', `expense_id = ${expenseId}`);
+
+            // Insert new category-specific data
+            switch (category) {
+                case 'Maintenance':
+                    const serviceId = formData.get('service_id');
+                    if (serviceId) {
+                        await Database.insertRecord('MaintenanceExpenses', {
+                            expense_id: expenseId,
+                            service_id: parseInt(serviceId)
+                        });
+                    }
+                    break;
+                case 'Registration':
+                    await Database.insertRecord('RegistrationExpenses', {
+                        expense_id: expenseId,
+                        renewal_date: formData.get('renewal_date'),
+                        renewal_period: formData.get('renewal_period'),
+                        state: formData.get('state')
+                    });
+                    break;
+                case 'Insurance':
+                    await Database.insertRecord('InsuranceExpenses', {
+                        expense_id: expenseId,
+                        policy_number: formData.get('policy_number'),
+                        start_date: formData.get('start_date'),
+                        end_date: formData.get('end_date'),
+                        provider_name: formData.get('provider_name')
+                    });
+                    break;
+                case 'Fuel':
+                    await Database.insertRecord('FuelExpenses', {
+                        expense_id: expenseId,
+                        gallons: parseFloat(formData.get('gallons')),
+                        current_mileage: parseInt(formData.get('current_mileage')),
+                        fuel_type: formData.get('fuel_type')
+                    });
+                    break;
+                case 'Misc':
+                    // No additional data for miscellaneous expenses
+                    break;
+            }
+        } catch (error) {
+            console.error('Error saving category-specific data:', error);
+            throw error;
+        }
+    },
+
+    // Create maintenance expense from service record
+    createMaintenanceExpenseFromService: async (serviceId) => {
+        try {
+            // Get service record
+            const services = await Database.select(`SELECT * FROM ServiceRecords WHERE service_id = ${serviceId}`);
+            const service = services[0];
+            if (!service) {
+                throw new Error('Service record not found');
+            }
+
+            // Check if maintenance expense already exists for this service
+            const existingExpenses = await Database.select(`
+                SELECT e.expense_id FROM Expenses e
+                JOIN MaintenanceExpenses me ON e.expense_id = me.expense_id
+                WHERE me.service_id = ${serviceId}
+            `);
+
+            if (existingExpenses.length > 0) {
+                console.log('Maintenance expense already exists for service ID:', serviceId);
+                return;
+            }
+
+            // Create expense record
+            const expenseData = {
+                vin: service.vin,
+                date: service.service_date,
+                category: 'Maintenance',
+                amount: service.cost,
+                description: service.description || 'Maintenance service'
+            };
+
+            const result = await Database.insertRecord('Expenses', expenseData);
+            const expenseId = result.insertId;
+
+            // Create maintenance expense record
+            await Database.insertRecord('MaintenanceExpenses', {
+                expense_id: expenseId,
+                service_id: serviceId
+            });
+
+            console.log('Maintenance expense created for service ID:', serviceId);
+        } catch (error) {
+            console.error('Error creating maintenance expense from service:', error);
+            throw error;
         }
     },
 
@@ -350,6 +740,13 @@ const expensesManager = {
         }
 
         try {
+            // Delete category-specific records first
+            await Database.deleteRecords('MaintenanceExpenses', `expense_id = ${expenseId}`);
+            await Database.deleteRecords('RegistrationExpenses', `expense_id = ${expenseId}`);
+            await Database.deleteRecords('InsuranceExpenses', `expense_id = ${expenseId}`);
+            await Database.deleteRecords('FuelExpenses', `expense_id = ${expenseId}`);
+            
+            // Delete the main expense record
             await Database.deleteRecords('Expenses', `expense_id = ${expenseId}`);
             Utils.showAlert('Expense deleted successfully', 'success');
             
@@ -432,20 +829,40 @@ const expensesManager = {
             const userId = AuthManager.currentUser.user_id;
             const isAdmin = AuthManager.isAdmin();
             
-            // Get expenses data
+            // Get expenses data with all related information
             let expensesToShow = [];
             if (isAdmin) {
                 expensesToShow = await Database.select(`
-                    SELECT e.*, v.make, v.model, v.year 
+                    SELECT 
+                        e.*, 
+                        v.make, v.model, v.year,
+                        me.service_id,
+                        re.renewal_date, re.renewal_period, re.state,
+                        ie.policy_number, ie.start_date, ie.end_date, ie.provider_name,
+                        fe.gallons, fe.current_mileage, fe.fuel_type
                     FROM Expenses e
                     LEFT JOIN Vehicles v ON e.vin = v.vin
+                    LEFT JOIN MaintenanceExpenses me ON e.expense_id = me.expense_id
+                    LEFT JOIN RegistrationExpenses re ON e.expense_id = re.expense_id
+                    LEFT JOIN InsuranceExpenses ie ON e.expense_id = ie.expense_id
+                    LEFT JOIN FuelExpenses fe ON e.expense_id = fe.expense_id
                     ORDER BY e.date DESC
                 `);
             } else {
                 expensesToShow = await Database.select(`
-                    SELECT e.*, v.make, v.model, v.year 
+                    SELECT 
+                        e.*, 
+                        v.make, v.model, v.year,
+                        me.service_id,
+                        re.renewal_date, re.renewal_period, re.state,
+                        ie.policy_number, ie.start_date, ie.end_date, ie.provider_name,
+                        fe.gallons, fe.current_mileage, fe.fuel_type
                     FROM Expenses e
                     LEFT JOIN Vehicles v ON e.vin = v.vin
+                    LEFT JOIN MaintenanceExpenses me ON e.expense_id = me.expense_id
+                    LEFT JOIN RegistrationExpenses re ON e.expense_id = re.expense_id
+                    LEFT JOIN InsuranceExpenses ie ON e.expense_id = ie.expense_id
+                    LEFT JOIN FuelExpenses fe ON e.expense_id = fe.expense_id
                     JOIN Owns o ON e.vin = o.vin
                     WHERE o.user_id = ${userId}
                     ORDER BY e.date DESC
@@ -472,11 +889,11 @@ const expensesManager = {
 
             // Detailed Expenses
             csvContent += 'DETAILED EXPENSES\n';
-            csvContent += 'ID,Vehicle,Date,Category,Amount,Description\n';
+            csvContent += 'ID,Vehicle,Date,Category,Amount,Description,Service ID,Renewal Date,Policy Number,Gallons\n';
             expensesToShow.forEach(expense => {
                 const vehicle = expense.make && expense.model && expense.year ? 
                     `${expense.year} ${expense.make} ${expense.model}` : 'Unknown Vehicle';
-                csvContent += `${expense.expense_id},"${vehicle}",${expense.date},${expense.category},${Utils.formatCurrency(expense.amount)},"${expense.description}"\n`;
+                csvContent += `${expense.expense_id},"${vehicle}",${expense.date},${expense.category},${Utils.formatCurrency(expense.amount)},"${expense.description}",${expense.service_id || ''},${expense.renewal_date || ''},${expense.policy_number || ''},${expense.gallons || ''}\n`;
             });
 
             // Download the CSV file

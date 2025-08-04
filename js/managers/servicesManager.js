@@ -525,6 +525,17 @@ const servicesManager = {
                 }
             }
 
+            // Create maintenance expense automatically for new service records
+            if (!serviceId && newServiceId) {
+                try {
+                    await expensesManager.createMaintenanceExpenseFromService(newServiceId);
+                    console.log('Maintenance expense created automatically for service ID:', newServiceId);
+                } catch (error) {
+                    console.error('Error creating maintenance expense:', error);
+                    // Don't fail the service creation if expense creation fails
+                }
+            }
+
             Utils.ModalManager.hide();
             
             // Refresh all sections that depend on service data
@@ -577,6 +588,24 @@ const servicesManager = {
         }
 
         try {
+            // Remove associated maintenance expenses first
+            try {
+                const maintenanceExpenses = await Database.select(`
+                    SELECT expense_id FROM MaintenanceExpenses 
+                    WHERE service_id = ${serviceId}
+                `);
+                
+                for (const me of maintenanceExpenses) {
+                    // Delete the main expense record
+                    await Database.deleteRecords('Expenses', `expense_id = ${me.expense_id}`);
+                }
+                
+                // Delete maintenance expense records
+                await Database.deleteRecords('MaintenanceExpenses', `service_id = ${serviceId}`);
+            } catch (error) {
+                console.log('No maintenance expenses to delete or table may not exist');
+            }
+            
             // Remove service from database
             await Database.deleteRecords('ServiceRecords', `service_id = ${serviceId}`);
             

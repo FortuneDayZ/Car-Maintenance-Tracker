@@ -373,9 +373,7 @@ const vehiclesManager = {
             }
             
             // Refresh fuel logs section
-            if (window.fuelManager) {
-                await fuelManager.render();
-            }
+
             
             // Refresh service records section
             if (window.servicesManager) {
