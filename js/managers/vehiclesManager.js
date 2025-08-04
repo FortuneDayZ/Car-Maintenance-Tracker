@@ -233,7 +233,7 @@ const vehiclesManager = {
 
         const formContent = `
             <form id="vehicleForm">
-                ${Utils.createFormField('VIN', 'vin', 'text', true).outerHTML}
+                ${Utils.createFormField('VIN (Cannot be modified later)', 'vin', 'text', true).outerHTML}
                 ${Utils.createFormField('Make', 'make', 'text', true).outerHTML}
                 ${Utils.createFormField('Model', 'model', 'text', true).outerHTML}
                 ${Utils.createFormField('Year', 'year', 'number', true).outerHTML}
@@ -256,7 +256,7 @@ const vehiclesManager = {
 
             const formContent = `
                 <form id="vehicleForm">
-                    ${Utils.createFormField('VIN', 'vin', 'text', true).outerHTML}
+                    ${Utils.createFormField('VIN (Cannot be modified)', 'vin', 'text', true).outerHTML.replace('type="text"', 'type="text" readonly')}
                     ${Utils.createFormField('Make', 'make', 'text', true).outerHTML}
                     ${Utils.createFormField('Model', 'model', 'text', true).outerHTML}
                     ${Utils.createFormField('Year', 'year', 'number', true).outerHTML}
