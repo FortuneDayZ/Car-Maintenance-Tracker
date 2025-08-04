@@ -190,11 +190,11 @@ const shopsManager = {
         const formContent = `
             <form id="shopForm">
                 ${Utils.createFormField('Name', 'name', 'text', true).outerHTML}
-                ${Utils.createFormField('Street', 'street', 'text', true).outerHTML}
-                ${Utils.createFormField('City', 'city', 'text', true).outerHTML}
-                ${Utils.createFormField('State', 'state', 'text', true).outerHTML}
-                ${Utils.createFormField('Zip Code', 'zip_code', 'text', true).outerHTML}
-                ${Utils.createFormField('Phone Number', 'phone_number', 'tel', true).outerHTML}
+                ${Utils.createFormField('Street', 'street', 'text', false).outerHTML}
+                ${Utils.createFormField('City', 'city', 'text', false).outerHTML}
+                ${Utils.createFormField('State', 'state', 'text', false).outerHTML}
+                ${Utils.createFormField('Zip Code', 'zip_code', 'text', false).outerHTML}
+                ${Utils.createFormField('Phone Number', 'phone_number', 'tel', false).outerHTML}
                 ${AuthManager.isAdmin() ? Utils.createFormField('User ID', 'user_id', 'number', true).outerHTML : ''}
             </form>
         `;
@@ -214,11 +214,11 @@ const shopsManager = {
             const formContent = `
                 <form id="shopForm">
                     ${Utils.createFormField('Name', 'name', 'text', true).outerHTML}
-                    ${Utils.createFormField('Street', 'street', 'text', true).outerHTML}
-                    ${Utils.createFormField('City', 'city', 'text', true).outerHTML}
-                    ${Utils.createFormField('State', 'state', 'text', true).outerHTML}
-                    ${Utils.createFormField('Zip Code', 'zip_code', 'text', true).outerHTML}
-                    ${Utils.createFormField('Phone Number', 'phone_number', 'tel', true).outerHTML}
+                    ${Utils.createFormField('Street', 'street', 'text', false).outerHTML}
+                    ${Utils.createFormField('City', 'city', 'text', false).outerHTML}
+                    ${Utils.createFormField('State', 'state', 'text', false).outerHTML}
+                    ${Utils.createFormField('Zip Code', 'zip_code', 'text', false).outerHTML}
+                    ${Utils.createFormField('Phone Number', 'phone_number', 'tel', false).outerHTML}
                     ${AuthManager.isAdmin() ? Utils.createFormField('User ID', 'user_id', 'number', true).outerHTML : ''}
                 </form>
             `;

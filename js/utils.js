@@ -161,6 +161,9 @@ const Utils = {
         
         const labelElement = document.createElement('label');
         labelElement.className = 'form-label';
+        if (required) {
+            labelElement.classList.add('required');
+        }
         labelElement.htmlFor = name;
         labelElement.textContent = label;
         

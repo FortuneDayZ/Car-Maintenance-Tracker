@@ -743,12 +743,12 @@ const maintenanceManager = {
                         <strong>Mileage:</strong> ${event.rec_mileage.toLocaleString()}
                     </div>
                     <div class="mb-3">
-                        <label for="reminderMessage" class="form-label">Reminder Message</label>
+                        <label for="reminderMessage" class="form-label required">Reminder Message</label>
                         <textarea class="form-control" id="reminderMessage" name="message" rows="3" required 
                             placeholder="Enter a reminder message..."></textarea>
                     </div>
                     <div class="mb-3">
-                        <label for="reminderDate" class="form-label">Reminder Date</label>
+                        <label for="reminderDate" class="form-label required">Reminder Date</label>
                         <input type="date" class="form-control" id="reminderDate" name="send_date" required>
                     </div>
                     <div class="mb-3">
@@ -899,12 +899,12 @@ const maintenanceManager = {
                         <strong>Mileage:</strong> ${event.rec_mileage.toLocaleString()}
                     </div>
                     <div class="mb-3">
-                        <label for="reminderMessage" class="form-label">Reminder Message</label>
+                        <label for="reminderMessage" class="form-label required">Reminder Message</label>
                         <textarea class="form-control" id="reminderMessage" name="message" rows="3" required 
                             placeholder="Enter a reminder message...">${reminder.message}</textarea>
                     </div>
                     <div class="mb-3">
-                        <label for="reminderDate" class="form-label">Reminder Date</label>
+                        <label for="reminderDate" class="form-label required">Reminder Date</label>
                         <input type="date" class="form-control" id="reminderDate" name="send_date" required value="${Utils.formatDate(reminder.send_date)}">
                     </div>
                     <div class="mb-3">

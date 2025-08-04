@@ -619,6 +619,24 @@
     background: #a8a8a8;
 } 
 
+/* Required field indicators */
+.form-label.required::after {
+    content: " *";
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.form-label.required {
+    font-weight: 600;
+}
+
+/* Ensure required asterisk is visible on all form types */
+.form-check-label.required::after {
+    content: " *";
+    color: #dc3545;
+    font-weight: bold;
+}
+
 /* Notification animations */
 @keyframes slideInRight {
     from {
