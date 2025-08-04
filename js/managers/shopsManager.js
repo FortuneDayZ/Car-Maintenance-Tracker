@@ -77,23 +77,20 @@ const shopsManager = {
             if (AuthManager.isAdmin()) {
                 // Admin can see all mechanics for this shop
                 const mechanicsResult = await Database.select(`
-                    SELECT mechanic_id, name, email, phone_number
+                    SELECT mechanic_id, name, email, phone_number, car_shop_id
                     FROM Mechanics
                     WHERE car_shop_id = ${shop.car_shop_id}
                 `);
                 mechanics = mechanicsResult;
                 mechanicsCount = mechanics.length;
             } else {
-                // Regular users can only see mechanics who worked on their vehicles
+                // Regular users can only see mechanics they added
                 const userId = AuthManager.currentUser.user_id;
                 const mechanicsResult = await Database.select(`
-                    SELECT DISTINCT m.mechanic_id, m.name, m.email, m.phone_number
+                    SELECT m.mechanic_id, m.name, m.email, m.phone_number, m.car_shop_id, cs.name AS shop_name
                     FROM Mechanics m
-                    JOIN WorkedOn wo ON m.mechanic_id = wo.mechanic_id
-                    JOIN ServiceRecords sr ON wo.service_id = sr.service_id
-                    JOIN Owns o ON sr.vin = o.vin
-                    WHERE m.car_shop_id = ${shop.car_shop_id}
-                    AND o.user_id = ${userId}
+                    LEFT JOIN CarShops cs ON m.car_shop_id = cs.car_shop_id
+                    WHERE m.user_id = ${userId} AND m.car_shop_id = ${shop.car_shop_id}
                 `);
                 mechanics = mechanicsResult;
                 mechanicsCount = mechanics.length;

@@ -25,17 +25,14 @@ const mechanicsManager = {
                     LEFT JOIN CarShops cs ON m.car_shop_id = cs.car_shop_id
                 `);
             } else {
-                // Regular users can only see mechanics who worked on their vehicles
+                // Regular users can only see mechanics they added
                 const userId = AuthManager.currentUser.user_id;
-                mechanics = await Database.select(`
-                    SELECT DISTINCT m.*, cs.name as shop_name 
+                
+                mechanics = await Database.select(`SELECT m.*, cs.name as shop_name 
                     FROM Mechanics m 
                     LEFT JOIN CarShops cs ON m.car_shop_id = cs.car_shop_id
-                    JOIN WorkedOn wo ON m.mechanic_id = wo.mechanic_id
-                    JOIN ServiceRecords sr ON wo.service_id = sr.service_id
-                    JOIN Owns o ON sr.vin = o.vin
-                    WHERE o.user_id = ${userId}
-                `);
+                    WHERE m.user_id = ${userId}
+                    `);
             }
             
             const table = `
@@ -48,6 +45,7 @@ const mechanicsManager = {
                                 <th>Email</th>
                                 <th>Phone</th>
                                 <th>Car Shop</th>
+                                ${AuthManager.isAdmin() ? '<th>User ID</th>' : ''}
                                 <th>Services</th>
                                 <th>Actions</th>
                             </tr>
@@ -117,6 +115,7 @@ const mechanicsManager = {
                 <td>${mechanic.email || 'N/A'}</td>
                 <td>${mechanic.phone_number || 'N/A'}</td>
                 <td>${shop}</td>
+                ${AuthManager.isAdmin() ? `<td>${mechanic.user_id}</td>` : ''}
                 <td>
                     <span class="badge bg-primary">${services.length} Service(s)</span>
                     <button class="btn btn-sm btn-outline-info" onclick="mechanicsManager.showDetails(${mechanic.mechanic_id})">
@@ -152,6 +151,11 @@ const mechanicsManager = {
                                         <li class="list-group-item">
                                             <strong>Shop:</strong> ${mechanic.shop_name || 'Unassigned'}
                                         </li>
+                                        ${AuthManager.isAdmin() ? `
+                                            <li class="list-group-item">
+                                                <strong>User ID:</strong> ${mechanic.user_id}
+                                            </li>
+                                        ` : ''}
                                     </ul>
                                 </div>
                                 <div class="col-md-6">
@@ -183,7 +187,16 @@ const mechanicsManager = {
 
     showAddForm: async () => {
         try {
-            const shops = await Database.select('SELECT car_shop_id, name FROM CarShops');
+            const userId = AuthManager.currentUser.user_id;
+
+            const shops = AuthManager.isAdmin()
+                ? await Database.select('SELECT car_shop_id, name FROM CarShops')
+                : await Database.select(`
+                    SELECT car_shop_id, name 
+                    FROM CarShops 
+                    WHERE user_id = ${userId}
+                `);
+
             const shopOptions = shops.map(shop => ({
                 value: shop.car_shop_id,
                 text: shop.name
@@ -195,6 +208,7 @@ const mechanicsManager = {
                 ${Utils.createFormField('Email', 'email', 'email', false).outerHTML}
                 ${Utils.createFormField('Phone Number', 'phone_number', 'tel', false).outerHTML}
                 ${Utils.createFormField('Car Shop', 'car_shop_id', 'select', false, shopOptions).outerHTML}
+                ${AuthManager.isAdmin() ? Utils.createFormField('User ID', 'user_id', 'number', true).outerHTML : ''}
             </form>
         `;
 
@@ -214,7 +228,16 @@ const mechanicsManager = {
                 return;
             }
 
-            const shops = await Database.select('SELECT car_shop_id, name FROM CarShops');
+            const userId = AuthManager.currentUser.user_id;
+
+            const shops = AuthManager.isAdmin()
+                ? await Database.select('SELECT car_shop_id, name FROM CarShops')
+                : await Database.select(`
+                    SELECT car_shop_id, name 
+                    FROM CarShops 
+                    WHERE user_id = ${userId}
+                `);
+
             const shopOptions = shops.map(shop => ({
                 value: shop.car_shop_id,
                 text: shop.name
@@ -226,6 +249,7 @@ const mechanicsManager = {
                     ${Utils.createFormField('Email', 'email', 'email', false).outerHTML}
                     ${Utils.createFormField('Phone Number', 'phone_number', 'tel', false).outerHTML}
                     ${Utils.createFormField('Car Shop', 'car_shop_id', 'select', false, shopOptions).outerHTML}
+                    ${AuthManager.isAdmin() ? Utils.createFormField('User ID', 'user_id', 'number', true).outerHTML : ''}
                 </form>
             `;
 
@@ -235,6 +259,9 @@ const mechanicsManager = {
                 document.getElementById('email').value = mechanic.email;
                 document.getElementById('phone_number').value = mechanic.phone_number;
                 document.getElementById('car_shop_id').value = mechanic.car_shop_id || '';
+                if (AuthManager.isAdmin()) {
+                    document.getElementById('user_id').value = mechanic.user_id;
+                }
             }, 100);
 
             Utils.ModalManager.show('Edit Mechanic', formContent, () => mechanicsManager.saveMechanic(mechanicId));
@@ -253,10 +280,17 @@ const mechanicsManager = {
             phone_number: formData.get('phone_number'),
             car_shop_id: formData.get('car_shop_id') ? parseInt(formData.get('car_shop_id')) : null
         };
+        if (AuthManager.isAdmin()) {
+            mechanicData.user_id = parseInt(formData.get('user_id'));
+        }
 
         // Validation
         if (!mechanicData.name) {
             Utils.showAlert('Name is required', 'danger');
+            return;
+        }
+        if ((AuthManager.isAdmin() && !mechanicData.user_id)) {
+            Utils.showAlert('User_ID is required', 'danger');
             return;
         }
 
@@ -272,15 +306,20 @@ const mechanicsManager = {
                 const carShopIdClause = mechanicData.car_shop_id ? `car_shop_id = ${mechanicData.car_shop_id}` : 'car_shop_id = NULL';
                 const emailClause = mechanicData.email ? `email = '${mechanicData.email}'` : 'email = NULL';
                 const phoneClause = mechanicData.phone_number ? `phone_number = '${mechanicData.phone_number}'` : 'phone_number = NULL';
-                
-                const sql = `UPDATE Mechanics SET 
+
+                let updateSql = `UPDATE Mechanics SET 
                     name = '${mechanicData.name}', 
                     ${emailClause}, 
                     ${phoneClause}, 
-                    ${carShopIdClause} 
-                    WHERE mechanic_id = ${mechanicId}`;
+                    ${carShopIdClause}`;
+
+                if (AuthManager.isAdmin()) {
+                    updateSql += `, user_id = ${mechanicData.user_id}`;
+                }
+
+                updateSql += ` WHERE mechanic_id = ${mechanicId}`;
                 
-                await Database.update(sql);
+                await Database.update(updateSql);
                 Utils.showAlert('Mechanic updated successfully', 'success');
             } else {
                 // Add new mechanic to database
@@ -288,8 +327,11 @@ const mechanicsManager = {
                 const emailValue = mechanicData.email ? `'${mechanicData.email}'` : 'NULL';
                 const phoneValue = mechanicData.phone_number ? `'${mechanicData.phone_number}'` : 'NULL';
                 
-                const sql = `INSERT INTO Mechanics (name, email, phone_number, car_shop_id) 
-                           VALUES ('${mechanicData.name}', ${emailValue}, ${phoneValue}, ${carShopIdClause})`;
+                const userId = AuthManager.isAdmin()
+                    ? mechanicData.user_id
+                    : AuthManager.currentUser.user_id;
+
+                const sql = `INSERT INTO Mechanics (name, email, phone_number, car_shop_id, user_id) VALUES ('${mechanicData.name}', ${emailValue}, ${phoneValue}, ${carShopIdClause}, ${userId})`;
                 
                 await Database.insert(sql);
                 Utils.showAlert('Mechanic added successfully', 'success');
