@@ -23,7 +23,15 @@ const shopsManager = {
             } else {
                 // Regular users can only see shops that have mechanics who worked on their vehicles
                 const userId = AuthManager.currentUser.user_id;
-                shops = await Database.select(`SELECT * FROM CarShops WHERE user_id = ${userId}`);
+                shops = await Database.select(`
+                    SELECT DISTINCT cs.* 
+                    FROM CarShops cs
+                    JOIN Mechanics m ON cs.car_shop_id = m.car_shop_id
+                    JOIN WorkedOn wo ON m.mechanic_id = wo.mechanic_id
+                    JOIN ServiceRecords sr ON wo.service_id = sr.service_id
+                    JOIN Owns o ON sr.vin = o.vin
+                    WHERE o.user_id = ${userId}
+                `);
             }
             
             // Create table rows asynchronously
@@ -42,7 +50,6 @@ const shopsManager = {
                                 <th>Name</th>
                                 <th>Address</th>
                                 <th>Phone</th>
-                                ${AuthManager.isAdmin() ? '<th>User ID</th>' : ''}
                                 <th>Mechanics</th>
                                 <th>Actions</th>
                             </tr>
@@ -113,7 +120,6 @@ const shopsManager = {
                 <td>${shop.name}</td>
                 <td>${address || 'N/A'}</td>
                 <td>${shop.phone_number || 'N/A'}</td>
-                ${AuthManager.isAdmin() ? `<td>${shop.user_id}</td>` : ''}
                 <td>
                     <span class="badge bg-info">${mechanicsCount} Mechanic(s)</span>
                     <button class="btn btn-sm btn-outline-info" onclick="shopsManager.showDetails(${shop.car_shop_id})">
@@ -138,7 +144,7 @@ const shopsManager = {
                         <div class="card-body">
                             <div class="row">
                                 <div class="col-md-6">
-                                    
+                                    <h6>Contact Information</h6>
                                     <ul class="list-group list-group-flush">
                                         <li class="list-group-item">
                                             <strong>Street:</strong> ${shop.street || 'N/A'}
@@ -153,13 +159,8 @@ const shopsManager = {
                                             <strong>Zip Code:</strong> ${shop.zip_code || 'N/A'}
                                         </li>
                                         <li class="list-group-item">
-                                            <strong>Phone:</strong> ${shop.phone_number}
+                                            <strong>Phone:</strong> ${shop.phone_number || 'N/A'}
                                         </li>
-                                        ${AuthManager.isAdmin() ? `
-                                            <li class="list-group-item">
-                                                <strong>User ID:</strong> ${shop.user_id}
-                                            </li>
-                                        ` : ''}
                                     </ul>
                                 </div>
                                 <div class="col-md-6">
@@ -193,12 +194,11 @@ const shopsManager = {
         const formContent = `
             <form id="shopForm">
                 ${Utils.createFormField('Name', 'name', 'text', true).outerHTML}
-                ${Utils.createFormField('Street', 'street', 'text', true).outerHTML}
-                ${Utils.createFormField('City', 'city', 'text', true).outerHTML}
-                ${Utils.createFormField('State', 'state', 'text', true).outerHTML}
-                ${Utils.createFormField('Zip Code', 'zip_code', 'text', true).outerHTML}
-                ${Utils.createFormField('Phone Number', 'phone_number', 'tel', true).outerHTML}
-                ${AuthManager.isAdmin() ? Utils.createFormField('User ID', 'user_id', 'number', true).outerHTML : ''}
+                ${Utils.createFormField('Street', 'street', 'text', false).outerHTML}
+                ${Utils.createFormField('City', 'city', 'text', false).outerHTML}
+                ${Utils.createFormField('State', 'state', 'text', false).outerHTML}
+                ${Utils.createFormField('Zip Code', 'zip_code', 'text', false).outerHTML}
+                ${Utils.createFormField('Phone Number', 'phone_number', 'tel', false).outerHTML}
             </form>
         `;
 
@@ -217,12 +217,11 @@ const shopsManager = {
             const formContent = `
                 <form id="shopForm">
                     ${Utils.createFormField('Name', 'name', 'text', true).outerHTML}
-                    ${Utils.createFormField('Street', 'street', 'text', true).outerHTML}
-                    ${Utils.createFormField('City', 'city', 'text', true).outerHTML}
-                    ${Utils.createFormField('State', 'state', 'text', true).outerHTML}
-                    ${Utils.createFormField('Zip Code', 'zip_code', 'text', true).outerHTML}
-                    ${Utils.createFormField('Phone Number', 'phone_number', 'tel', true).outerHTML}
-                    ${AuthManager.isAdmin() ? Utils.createFormField('User ID', 'user_id', 'number', true).outerHTML : ''}
+                    ${Utils.createFormField('Street', 'street', 'text', false).outerHTML}
+                    ${Utils.createFormField('City', 'city', 'text', false).outerHTML}
+                    ${Utils.createFormField('State', 'state', 'text', false).outerHTML}
+                    ${Utils.createFormField('Zip Code', 'zip_code', 'text', false).outerHTML}
+                    ${Utils.createFormField('Phone Number', 'phone_number', 'tel', false).outerHTML}
                 </form>
             `;
 
@@ -234,9 +233,6 @@ const shopsManager = {
                 document.getElementById('state').value = shop.state || '';
                 document.getElementById('zip_code').value = shop.zip_code || '';
                 document.getElementById('phone_number').value = shop.phone_number;
-                if (AuthManager.isAdmin()) {
-                    document.getElementById('user_id').value = shop.user_id;
-                }
             }, 100);
 
             Utils.ModalManager.show('Edit Car Shop', formContent, () => shopsManager.saveShop(shopId));
@@ -258,44 +254,43 @@ const shopsManager = {
             phone_number: formData.get('phone_number')
         };
 
-        if (AuthManager.isAdmin()) {
-            shopData.user_id = parseInt(formData.get('user_id'));
-        }
-
         // Validation
-        if (!shopData.name || !shopData.street || !shopData.city || !shopData.state || !shopData.zip_code || !shopData.phone_number || (AuthManager.isAdmin() && !shopData.user_id)) {
-            Utils.showAlert('All fields are required', 'danger');
+        if (!shopData.name) {
+            Utils.showAlert('Name is required', 'danger');
             return;
         }
 
         try {
             if (shopId) {
                 // Update existing shop in database
-                let updateSql = `UPDATE CarShops SET 
-                    name = '${shopData.name}', 
-                    street = '${shopData.street}', 
-                    city = '${shopData.city}', 
-                    state = '${shopData.state}', 
-                    zip_code = '${shopData.zip_code}', 
-                    phone_number = '${shopData.phone_number}'`;
-
-                if (AuthManager.isAdmin()) {
-                    updateSql += `, user_id = ${shopData.user_id}`;
-                }
-
-                updateSql += ` WHERE car_shop_id = ${shopId}`;
+                const streetClause = shopData.street ? `street = '${shopData.street}'` : 'street = NULL';
+                const cityClause = shopData.city ? `city = '${shopData.city}'` : 'city = NULL';
+                const stateClause = shopData.state ? `state = '${shopData.state}'` : 'state = NULL';
+                const zipClause = shopData.zip_code ? `zip_code = '${shopData.zip_code}'` : 'zip_code = NULL';
+                const phoneClause = shopData.phone_number ? `phone_number = '${shopData.phone_number}'` : 'phone_number = NULL';
                 
-                await Database.update(updateSql);
+                const sql = `UPDATE CarShops SET 
+                    name = '${shopData.name}', 
+                    ${streetClause}, 
+                    ${cityClause}, 
+                    ${stateClause}, 
+                    ${zipClause}, 
+                    ${phoneClause} 
+                    WHERE car_shop_id = ${shopId}`;
+                
+                await Database.update(sql);
                 Utils.showAlert('Car shop updated successfully', 'success');
             } else {
                 // Add new shop to database
-                const userId = AuthManager.isAdmin()
-                    ? shopData.user_id
-                    : AuthManager.currentUser.user_id;
-
-                const sql = `INSERT INTO CarShops (name, street, city, state, zip_code, phone_number, user_id) 
-                            VALUES ('${shopData.name}', '${shopData.street}', '${shopData.city}', '${shopData.state}', '${shopData.zip_code}', '${shopData.phone_number}', ${userId})`;
-
+                const streetValue = shopData.street ? `'${shopData.street}'` : 'NULL';
+                const cityValue = shopData.city ? `'${shopData.city}'` : 'NULL';
+                const stateValue = shopData.state ? `'${shopData.state}'` : 'NULL';
+                const zipValue = shopData.zip_code ? `'${shopData.zip_code}'` : 'NULL';
+                const phoneValue = shopData.phone_number ? `'${shopData.phone_number}'` : 'NULL';
+                
+                const sql = `INSERT INTO CarShops (name, street, city, state, zip_code, phone_number) 
+                           VALUES ('${shopData.name}', ${streetValue}, ${cityValue}, ${stateValue}, ${zipValue}, ${phoneValue})`;
+                
                 await Database.insert(sql);
                 Utils.showAlert('Car shop added successfully', 'success');
             }
