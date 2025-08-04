@@ -278,7 +278,7 @@ const servicesManager = {
                 ${Utils.createFormField('Service Date', 'service_date', 'date', true).outerHTML}
                 ${Utils.createFormField('Current Mileage', 'current_mileage', 'number', true).outerHTML}
                 ${Utils.createFormField('Cost', 'cost', 'number', true).outerHTML}
-                ${Utils.createFormField('Description', 'description', 'textarea', true).outerHTML}
+                ${Utils.createFormField('Description', 'description', 'textarea', false).outerHTML}
                 ${Utils.createFormField('Mechanics', 'mechanics', 'select', false, mechanicOptions).outerHTML}
                 ${Utils.createFormField('Service Types', 'service_types', 'select', false, serviceTypeOptions).outerHTML}
                 ${Utils.createFormField('Parts Used', 'parts', 'select', false, partOptions).outerHTML}
@@ -395,7 +395,7 @@ const servicesManager = {
                 ${Utils.createFormField('Service Date', 'service_date', 'date', true).outerHTML}
                 ${Utils.createFormField('Current Mileage', 'current_mileage', 'number', true).outerHTML}
                 ${Utils.createFormField('Cost', 'cost', 'number', true).outerHTML}
-                ${Utils.createFormField('Description', 'description', 'textarea', true).outerHTML}
+                ${Utils.createFormField('Description', 'description', 'textarea', false).outerHTML}
                 ${Utils.createFormField('Mechanics', 'mechanics', 'select', false, mechanicOptions).outerHTML}
                 ${Utils.createFormField('Service Types', 'service_types', 'select', false, serviceTypeOptions).outerHTML}
                 ${Utils.createFormField('Parts Used', 'parts', 'select', false, partOptions).outerHTML}
@@ -461,10 +461,6 @@ const servicesManager = {
             return;
         }
         
-        if (!serviceData.description || serviceData.description.trim() === '') {
-            Utils.showAlert('Description is required', 'danger');
-            return;
-        }
 
         if (serviceData.current_mileage < 0) {
             Utils.showAlert('Mileage must be a positive number', 'danger');

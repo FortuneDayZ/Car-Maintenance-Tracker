@@ -308,6 +308,31 @@ const shopsManager = {
         }
     },
 
+    refreshAllRelatedSections: async () => {
+        try {
+            // Show loading indicator
+            Utils.showAlert('Updating all related sections...', 'info');
+            
+            // Refresh mechanics section
+            await shopsManager.render();
+            
+            // Refresh mechanics section
+            if (window.mechanicsManager) {
+                await mechanicsManager.render();
+            }
+            
+            console.log('All carshop-related sections refreshed successfully');
+            
+            // Show success message
+            setTimeout(() => {
+                Utils.showAlert('All sections updated successfully!', 'success');
+            }, 500);
+        } catch (error) {
+            console.error('Error refreshing carshop-related sections:', error);
+            Utils.showAlert('Error updating sections. Please refresh the page.', 'danger');
+        }
+    },
+
     deleteShop: async (shopId) => {
         if (!confirm('Are you sure you want to delete this car shop? This will also remove all associated mechanics.')) {
             return;
@@ -319,7 +344,7 @@ const shopsManager = {
             await Database.delete(sql);
             
             Utils.showAlert('Car shop deleted successfully', 'success');
-            shopsManager.render();
+            await mechanicsManager.refreshAllRelatedSections();
         } catch (error) {
             Utils.showAlert(`Error deleting shop: ${error.message}`, 'danger');
         }

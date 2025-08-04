@@ -48,12 +48,12 @@ CREATE TABLE CarShops (
 CREATE TABLE Mechanics (
     mechanic_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
-    car_shop_id INT,
+    car_shop_id INT NOT NULL,
     name VARCHAR(100) NOT NULL,
     phone_number VARCHAR(20),
     email VARCHAR(100),
     FOREIGN KEY (car_shop_id) REFERENCES CarShops(car_shop_id) 
-        ON UPDATE CASCADE ON DELETE SET NULL,
+        ON UPDATE CASCADE ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES Users(user_id)
         ON UPDATE CASCADE ON DELETE CASCADE
 );

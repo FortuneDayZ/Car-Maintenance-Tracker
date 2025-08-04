@@ -207,7 +207,7 @@ const mechanicsManager = {
                 ${Utils.createFormField('Name', 'name', 'text', true).outerHTML}
                 ${Utils.createFormField('Email', 'email', 'email', false).outerHTML}
                 ${Utils.createFormField('Phone Number', 'phone_number', 'tel', false).outerHTML}
-                ${Utils.createFormField('Car Shop', 'car_shop_id', 'select', false, shopOptions).outerHTML}
+                ${Utils.createFormField('Car Shop', 'car_shop_id', 'select', true, shopOptions).outerHTML}
                 ${AuthManager.isAdmin() ? Utils.createFormField('User ID', 'user_id', 'number', true).outerHTML : ''}
             </form>
         `;
@@ -248,7 +248,7 @@ const mechanicsManager = {
                     ${Utils.createFormField('Name', 'name', 'text', true).outerHTML}
                     ${Utils.createFormField('Email', 'email', 'email', false).outerHTML}
                     ${Utils.createFormField('Phone Number', 'phone_number', 'tel', false).outerHTML}
-                    ${Utils.createFormField('Car Shop', 'car_shop_id', 'select', false, shopOptions).outerHTML}
+                    ${Utils.createFormField('Car Shop', 'car_shop_id', 'select', true, shopOptions).outerHTML}
                     ${AuthManager.isAdmin() ? Utils.createFormField('User ID', 'user_id', 'number', true).outerHTML : ''}
                 </form>
             `;
@@ -364,6 +364,11 @@ const mechanicsManager = {
             if (window.servicesManager) {
                 await servicesManager.render();
             }
+
+            // Refresh car shops section
+            if (window.shopsManager) {
+                await shopsManager.render();
+            }
             
             // Refresh upcoming services section (if mechanics are involved)
             if (window.maintenanceManager) {
@@ -383,7 +388,7 @@ const mechanicsManager = {
     },
 
     deleteMechanic: async (mechanicId) => {
-        if (!confirm('Are you sure you want to delete this mechanic? This will also remove all associated service records.')) {
+        if (!confirm('Are you sure you want to delete this mechanic? This will also the mechanic from associated service records.')) {
             return;
         }
 
