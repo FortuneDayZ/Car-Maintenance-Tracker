@@ -44,12 +44,15 @@ CREATE TABLE CarShops (
 
 CREATE TABLE Mechanics (
     mechanic_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
     car_shop_id INT,
     name VARCHAR(100) NOT NULL,
     phone_number VARCHAR(20),
     email VARCHAR(100),
     FOREIGN KEY (car_shop_id) REFERENCES CarShops(car_shop_id) 
-        ON UPDATE CASCADE ON DELETE SET NULL
+        ON UPDATE CASCADE ON DELETE SET NULL,
+    FOREIGN KEY (user_id) REFERENCES Users(user_id)
+        ON UPDATE CASCADE ON DELETE CASCADE
 );
 
 CREATE TABLE ServiceRecords (
@@ -89,10 +92,13 @@ CREATE TABLE ServiceRecords_ServiceTypes (
 
 CREATE TABLE Parts (
     part_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
     name VARCHAR(255) NOT NULL,
     manufacturer VARCHAR(255),
     part_number VARCHAR(100),
-    unit_price DECIMAL(10, 2) NOT NULL
+    unit_price DECIMAL(10, 2) NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES Users(user_id)
+        ON UPDATE CASCADE ON DELETE CASCADE
 );
 
 CREATE TABLE ServiceRecords_Parts (
@@ -186,7 +192,7 @@ CREATE TABLE Reminder (
     PRIMARY KEY (reminder_id, event_id),
     FOREIGN KEY (event_id) REFERENCES UpcomingServices(event_id) 
         ON UPDATE CASCADE ON DELETE CASCADE
-);
+)
 
 CREATE INDEX idx_make_model ON Vehicles(make, model);
 CREATE INDEX idx_city_state ON CarShops(city, state);
