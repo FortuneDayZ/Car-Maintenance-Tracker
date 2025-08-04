@@ -21,7 +21,7 @@ const partsManager = {
                 // Admin can see all parts
                 parts = await Database.select('SELECT * FROM Parts ORDER BY name');
             } else {
-                // Regular users can see all parts, but we'll mark which ones they've used
+                /* // Regular users can see all parts, but we'll mark which ones they've used
                 const userId = AuthManager.currentUser.user_id;
                 
                 // Get all parts
@@ -44,18 +44,13 @@ const partsManager = {
                 parts = allParts.map(part => ({
                     ...part,
                     used_by_user: usedPartIds.has(part.part_id)
-                }));
+                })); */
+                const userId = AuthManager.currentUser.user_id;
+                parts = await Database.select(`SELECT * FROM Parts p WHERE p.user_id = ${userId} ORDER BY p.name`);
+
             }
             
             const table = `
-                ${!AuthManager.isAdmin() ? `
-                <div class="alert alert-info mb-3">
-                    <i class="fas fa-info-circle"></i> 
-                    <strong>Parts Overview:</strong> You can see all available parts in the system. 
-                    Parts marked with <span class="badge bg-success"><i class="fas fa-check"></i> Used</span> 
-                    are ones you've used in your vehicle service records.
-                </div>
-                ` : ''}
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead>
@@ -65,6 +60,7 @@ const partsManager = {
                                 <th>Manufacturer</th>
                                 <th>Part Number</th>
                                 <th>Unit Price</th>
+                                ${AuthManager.isAdmin() ? '<th>User ID</th>' : ''}
                                 <th>Services Used</th>
                                 <th>Actions</th>
                             </tr>
@@ -133,6 +129,8 @@ const partsManager = {
                 <td>${part.manufacturer}</td>
                 <td><code>${part.part_number}</code></td>
                 <td>${Utils.formatCurrency(part.unit_price)}</td>
+                ${AuthManager.isAdmin() ? `<td>${part.user_id}</td>` : ''}
+
                 <td>
                     <span class="badge bg-info">${services.length} Service(s)</span>
                     <button class="btn btn-sm btn-outline-info" onclick="partsManager.showDetails(${part.part_id})">
@@ -171,6 +169,11 @@ const partsManager = {
                                         <li class="list-group-item">
                                             <strong>Unit Price:</strong> ${Utils.formatCurrency(part.unit_price)}
                                         </li>
+                                        ${AuthManager.isAdmin() ? `
+                                            <li class="list-group-item">
+                                                <strong>User ID:</strong> ${part.user_id}
+                                            </li>
+                                        ` : ''}
                                     </ul>
                                 </div>
                                 <div class="col-md-6">
@@ -207,6 +210,7 @@ const partsManager = {
                 ${Utils.createFormField('Manufacturer', 'manufacturer', 'text', true).outerHTML}
                 ${Utils.createFormField('Part Number', 'part_number', 'text', true).outerHTML}
                 ${Utils.createFormField('Unit Price', 'unit_price', 'number', true).outerHTML}
+                ${AuthManager.isAdmin() ? Utils.createFormField('User ID', 'user_id', 'number', true).outerHTML : ''}
             </form>
         `;
 
@@ -225,6 +229,7 @@ const partsManager = {
                 ${Utils.createFormField('Manufacturer', 'manufacturer', 'text', true).outerHTML}
                 ${Utils.createFormField('Part Number', 'part_number', 'text', true).outerHTML}
                 ${Utils.createFormField('Unit Price', 'unit_price', 'number', true).outerHTML}
+                ${AuthManager.isAdmin() ? Utils.createFormField('User ID', 'user_id', 'number', true).outerHTML : ''}
             </form>
         `;
 
@@ -237,6 +242,11 @@ const partsManager = {
             part_number: part.part_number,
             unit_price: part.unit_price
         });
+        
+        if (AuthManager.isAdmin()) {
+            document.getElementById('user_id').value = part.user_id;
+        }
+
         } catch (error) {
             console.error('Error loading part for edit:', error);
             Utils.showAlert(`Error loading part: ${error.message}`, 'danger');
@@ -253,6 +263,9 @@ const partsManager = {
             part_number: formData.get('part_number'),
             unit_price: parseFloat(formData.get('unit_price'))
         };
+        if (AuthManager.isAdmin()) {
+            partData.user_id = parseInt(formData.get('user_id'));
+        }
 
         // Validation - check for empty strings and NaN values
         if (!partData.name || partData.name.trim() === '') {
@@ -279,17 +292,46 @@ const partsManager = {
             Utils.showAlert('Unit price must be a positive number', 'danger');
             return;
         }
+        if ((AuthManager.isAdmin() && !partData.user_id)) {
+            Utils.showAlert('User_ID is required', 'danger');
+            return;
+        }
 
         try {
             if (partId) {
-                // Update existing part
-                await Database.updateRecord('Parts', partData, `part_id = ${partId}`);
+                // Update existing part in database
+                const manufacturerClause = partData.manufacturer ? `manufacturer = '${partData.manufacturer}'` : 'manufacturer = NULL';
+                const partNumberClause = partData.part_number ? `part_number = '${partData.part_number}'` : 'part_number = NULL';
+            
+                let updateSql = `UPDATE Parts SET 
+                    name = '${partData.name}', 
+                    unit_price = ${partData.unit_price}, 
+                    ${manufacturerClause}, 
+                    ${partNumberClause}`;
+            
+                if (AuthManager.isAdmin()) {
+                    updateSql += `, user_id = ${partData.user_id}`;
+                }
+            
+                updateSql += ` WHERE part_id = ${partId}`;
+            
+                await Database.update(updateSql);
                 Utils.showAlert('Part updated successfully', 'success');
             } else {
-                // Add new part
-                await Database.insertRecord('Parts', partData);
+                // Add new part to database
+                const manufacturerValue = partData.manufacturer ? `'${partData.manufacturer}'` : 'NULL';
+                const partNumberValue = partData.part_number ? `'${partData.part_number}'` : 'NULL';
+            
+                const userId = AuthManager.isAdmin()
+                    ? partData.user_id
+                    : AuthManager.currentUser.user_id;
+            
+                const sql = `INSERT INTO Parts (name, manufacturer, part_number, unit_price, user_id) 
+                             VALUES ('${partData.name}', ${manufacturerValue}, ${partNumberValue}, ${partData.unit_price}, ${userId})`;
+            
+                await Database.insert(sql);
                 Utils.showAlert('Part added successfully', 'success');
-            }
+            }            
 
             Utils.ModalManager.hide();
             
