@@ -42,6 +42,7 @@ const shopsManager = {
                                 <th>Name</th>
                                 <th>Address</th>
                                 <th>Phone</th>
+                                ${AuthManager.isAdmin() ? '<th>User ID</th>' : ''}
                                 <th>Mechanics</th>
                                 <th>Actions</th>
                             </tr>
@@ -112,6 +113,7 @@ const shopsManager = {
                 <td>${shop.name}</td>
                 <td>${address || 'N/A'}</td>
                 <td>${shop.phone_number || 'N/A'}</td>
+                ${AuthManager.isAdmin() ? `<td>${shop.user_id}</td>` : ''}
                 <td>
                     <span class="badge bg-info">${mechanicsCount} Mechanic(s)</span>
                     <button class="btn btn-sm btn-outline-info" onclick="shopsManager.showDetails(${shop.car_shop_id})">
@@ -136,7 +138,7 @@ const shopsManager = {
                         <div class="card-body">
                             <div class="row">
                                 <div class="col-md-6">
-                                    <h6>Contact Information</h6>
+                                    
                                     <ul class="list-group list-group-flush">
                                         <li class="list-group-item">
                                             <strong>Street:</strong> ${shop.street || 'N/A'}
@@ -153,6 +155,11 @@ const shopsManager = {
                                         <li class="list-group-item">
                                             <strong>Phone:</strong> ${shop.phone_number}
                                         </li>
+                                        ${AuthManager.isAdmin() ? `
+                                            <li class="list-group-item">
+                                                <strong>User ID:</strong> ${shop.user_id}
+                                            </li>
+                                        ` : ''}
                                     </ul>
                                 </div>
                                 <div class="col-md-6">
@@ -191,6 +198,7 @@ const shopsManager = {
                 ${Utils.createFormField('State', 'state', 'text', true).outerHTML}
                 ${Utils.createFormField('Zip Code', 'zip_code', 'text', true).outerHTML}
                 ${Utils.createFormField('Phone Number', 'phone_number', 'tel', true).outerHTML}
+                ${AuthManager.isAdmin() ? Utils.createFormField('User ID', 'user_id', 'number', true).outerHTML : ''}
             </form>
         `;
 
@@ -214,6 +222,7 @@ const shopsManager = {
                     ${Utils.createFormField('State', 'state', 'text', true).outerHTML}
                     ${Utils.createFormField('Zip Code', 'zip_code', 'text', true).outerHTML}
                     ${Utils.createFormField('Phone Number', 'phone_number', 'tel', true).outerHTML}
+                    ${AuthManager.isAdmin() ? Utils.createFormField('User ID', 'user_id', 'number', true).outerHTML : ''}
                 </form>
             `;
 
@@ -225,6 +234,9 @@ const shopsManager = {
                 document.getElementById('state').value = shop.state || '';
                 document.getElementById('zip_code').value = shop.zip_code || '';
                 document.getElementById('phone_number').value = shop.phone_number;
+                if (AuthManager.isAdmin()) {
+                    document.getElementById('user_id').value = shop.user_id;
+                }
             }, 100);
 
             Utils.ModalManager.show('Edit Car Shop', formContent, () => shopsManager.saveShop(shopId));
@@ -246,8 +258,12 @@ const shopsManager = {
             phone_number: formData.get('phone_number')
         };
 
+        if (AuthManager.isAdmin()) {
+            shopData.user_id = parseInt(formData.get('user_id'));
+        }
+
         // Validation
-        if (!shopData.name || !shopData.street || !shopData.city || !shopData.state || !shopData.zip_code || !shopData.phone_number) {
+        if (!shopData.name || !shopData.street || !shopData.city || !shopData.state || !shopData.zip_code || !shopData.phone_number || (AuthManager.isAdmin() && !shopData.user_id)) {
             Utils.showAlert('All fields are required', 'danger');
             return;
         }
@@ -255,21 +271,30 @@ const shopsManager = {
         try {
             if (shopId) {
                 // Update existing shop in database
-                const sql = `UPDATE CarShops SET 
+                let updateSql = `UPDATE CarShops SET 
                     name = '${shopData.name}', 
                     street = '${shopData.street}', 
                     city = '${shopData.city}', 
                     state = '${shopData.state}', 
                     zip_code = '${shopData.zip_code}', 
-                    phone_number = '${shopData.phone_number}' 
-                    WHERE car_shop_id = ${shopId}`;
+                    phone_number = '${shopData.phone_number}'`;
+
+                if (AuthManager.isAdmin()) {
+                    updateSql += `, user_id = ${shopData.user_id}`;
+                }
+
+                updateSql += ` WHERE car_shop_id = ${shopId}`;
                 
-                await Database.update(sql);
+                await Database.update(updateSql);
                 Utils.showAlert('Car shop updated successfully', 'success');
             } else {
                 // Add new shop to database
-                const userId = AuthManager.currentUser.user_id;
-                sql = `INSERT INTO CarShops (name, street, city, state, zip_code, phone_number, user_id) VALUES ('${shopData.name}', '${shopData.street}', '${shopData.city}', '${shopData.state}', '${shopData.zip_code}', '${shopData.phone_number}', ${userId})`;
+                const userId = AuthManager.isAdmin()
+                    ? shopData.user_id
+                    : AuthManager.currentUser.user_id;
+
+                const sql = `INSERT INTO CarShops (name, street, city, state, zip_code, phone_number, user_id) 
+                            VALUES ('${shopData.name}', '${shopData.street}', '${shopData.city}', '${shopData.state}', '${shopData.zip_code}', '${shopData.phone_number}', ${userId})`;
 
                 await Database.insert(sql);
                 Utils.showAlert('Car shop added successfully', 'success');
