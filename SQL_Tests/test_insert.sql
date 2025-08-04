@@ -1,7 +1,7 @@
 USE `Final`;
 
 -- Populate Users table with 150 users
-INSERT INTO Users (username, password_hash, email, birthday, registration_date) VALUES
+INSERT IGNORE INTO Users (username, password_hash, email, birthday, registration_date) VALUES
 ('johndoe', '$2a$12$RIHj.q.C8xZ5vB3b5iP1j.OaJ2c3k4L5m6n7o8p9q0r1s2t3u4v5', 'johndoe@example.com', '1990-01-15', '2022-01-01'),
 ('janesmith', '$2a$12$RIHj.q.C8xZ5vB3b5iP1j.OaJ2c3k4L5m6n7o8p9q0r1s2t3u4v5', 'janesmith@example.com', '1992-03-22', '2022-01-02'),
 ('alicejones', '$2a$12$RIHj.q.C8xZ5vB3b5iP1j.OaJ2c3k4L5m6n7o8p9q0r1s2t3u4v5', 'alicejones@example.com', '1985-07-30', '2022-01-03'),
@@ -460,21 +460,21 @@ INSERT INTO Owns (user_id, vin, start_date, end_date) VALUES
 (150, 'VIN150', '2022-05-30', NULL);
 
 -- Populate CarShops table (FIXED: using correct column names from schema)
-INSERT INTO CarShops (name, street, city, state, zip_code, phone_number) VALUES
-('AutoCare Center', '123 Main St', 'Anytown', 'CA', '12345', '555-0101'),
-('ProMechanics', '456 Oak Ave', 'Someville', 'TX', '67890', '555-0102'),
-('Speedy Auto Repair', '789 Pine Ln', 'Metropolis', 'NY', '10001', '555-0103'),
-('Reliable Motors', '101 Maple Dr', 'Smalltown', 'OH', '44001', '555-0104'),
-('City Car Care', '212 Elm St', 'Bigcity', 'FL', '33101', '555-0105');
+INSERT IGNORE INTO CarShops (user_id, name, street, city, state, zip_code, phone_number) VALUES
+(1, 'AutoCare Center', '123 Main St', 'Anytown', 'CA', '12345', '555-0101'),
+(2, 'ProMechanics', '456 Oak Ave', 'Someville', 'TX', '67890', '555-0102'),
+(3, 'Speedy Auto Repair', '789 Pine Ln', 'Metropolis', 'NY', '10001', '555-0103'),
+(4, 'Reliable Motors', '101 Maple Dr', 'Smalltown', 'OH', '44001', '555-0104'),
+(5, 'City Car Care', '212 Elm St', 'Bigcity', 'FL', '33101', '555-0105');
 
 -- Populate Mechanics table
-INSERT INTO Mechanics (car_shop_id, name, phone_number, email) VALUES
-(1, 'Mike Miller', '555-0111', 'mike.miller@autocare.com'),
-(1, 'Gary Smith', '555-0112', 'gary.smith@autocare.com'),
-(2, 'Laura Wilson', '555-0121', 'laura.wilson@promechanics.com'),
-(3, 'Chris Taylor', '555-0131', 'chris.taylor@speedyauto.com'),
-(4, 'Pat Johnson', '555-0141', 'pat.johnson@reliablemotors.com'),
-(5, 'Alex Lee', '555-0151', 'alex.lee@citycarcare.com');
+INSERT IGNORE INTO Mechanics (user_id, car_shop_id, name, phone_number, email) VALUES
+(6, 1, 'Mike Miller', '555-0111', 'mike.miller@autocare.com'),
+(7, 1, 'Gary Smith', '555-0112', 'gary.smith@autocare.com'),
+(8, 2, 'Laura Wilson', '555-0121', 'laura.wilson@promechanics.com'),
+(9, 3, 'Chris Taylor', '555-0131', 'chris.taylor@speedyauto.com'),
+(10, 4, 'Pat Johnson', '555-0141', 'pat.johnson@reliablemotors.com'),
+(11, 5, 'Alex Lee', '555-0151', 'alex.lee@citycarcare.com');
 
 -- Populate ServiceRecords table
 INSERT INTO ServiceRecords (vin, service_date, current_mileage, cost, description) VALUES
@@ -518,15 +518,15 @@ INSERT INTO ServiceRecords_ServiceTypes (service_id, service_type) VALUES
 (9, 'Engine Tune-up');
 
 -- Populate Parts table
-INSERT INTO Parts (name, manufacturer, part_number, unit_price) VALUES
-('Engine Oil 5W-30', 'Mobil 1', 'M1-110A', 8.99),
-('Oil Filter', 'Bosch', '3330', 12.50),
-('Front Brake Pads', 'Brembo', 'P83045N', 55.75),
-('Air Filter', 'K&N', '33-2468', 45.00),
-('ATF DW-1', 'Honda', '08200-9008', 9.25),
-('Spark Plugs', 'NGK', 'ILZKR7B-11S', 15.00),
-('Coolant', 'Prestone', 'AF2100', 18.50),
-('Battery', 'DieHard', 'AGM-35', 220.00);
+INSERT IGNORE INTO Parts (user_id, name, manufacturer, part_number, unit_price) VALUES
+(1, 'Engine Oil 5W-30', 'Mobil 1', 'M1-110A', 8.99),
+(2, 'Oil Filter', 'Bosch', '3330', 12.50),
+(3, 'Front Brake Pads', 'Brembo', 'P83045N', 55.75),
+(4, 'Air Filter', 'K&N', '33-2468', 45.00),
+(5, 'ATF DW-1', 'Honda', '08200-9008', 9.25),
+(6, 'Spark Plugs', 'NGK', 'ILZKR7B-11S', 15.00),
+(7, 'Coolant', 'Prestone', 'AF2100', 18.50),
+(8, 'Battery', 'DieHard', 'AGM-35', 220.00);
 
 -- Populate ServiceRecords_Parts table
 INSERT INTO ServiceRecords_Parts (service_id, part_id) VALUES

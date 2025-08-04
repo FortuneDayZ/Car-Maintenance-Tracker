@@ -153,6 +153,34 @@ else
     exit 1
 fi
 
+# Set up service types first (needed for test data)
+print_status "Setting up service types..."
+if [ -f "../sql/populate_service_types.sql" ]; then
+    mysql --defaults-file="$MYSQL_CONFIG_FILE" $MYSQL_DATABASE < ../sql/populate_service_types.sql >/dev/null 2>&1
+else
+    mysql --defaults-file="$MYSQL_CONFIG_FILE" $MYSQL_DATABASE < sql/populate_service_types.sql >/dev/null 2>&1
+fi
+if [ $? -eq 0 ]; then
+    print_success "Service types created"
+else
+    print_error "Failed to create service types"
+    exit 1
+fi
+
+# Set up admin user
+print_status "Setting up admin user..."
+if [ -f "../sql/setup_admin.sql" ]; then
+    mysql --defaults-file="$MYSQL_CONFIG_FILE" $MYSQL_DATABASE < ../sql/setup_admin.sql >/dev/null 2>&1
+else
+    mysql --defaults-file="$MYSQL_CONFIG_FILE" $MYSQL_DATABASE < sql/setup_admin.sql >/dev/null 2>&1
+fi
+if [ $? -eq 0 ]; then
+    print_success "Admin user created"
+else
+    print_error "Failed to create admin user"
+    exit 1
+fi
+
 # Insert sample data (ask user)
 echo ""
 read -p "Do you want to insert sample data? (yes/no): " -r
@@ -170,34 +198,6 @@ if [[ $REPLY =~ ^[Yy][Ee][Ss]$ ]]; then
     fi
 else
     print_status "Skipping sample data insertion."
-fi
-
-# Set up admin user
-print_status "Setting up admin user..."
-if [ -f "../sql/setup_admin.sql" ]; then
-    mysql --defaults-file="$MYSQL_CONFIG_FILE" $MYSQL_DATABASE < ../sql/setup_admin.sql >/dev/null 2>&1
-else
-    mysql --defaults-file="$MYSQL_CONFIG_FILE" $MYSQL_DATABASE < sql/setup_admin.sql >/dev/null 2>&1
-fi
-if [ $? -eq 0 ]; then
-    print_success "Admin user created"
-else
-    print_error "Failed to create admin user"
-    exit 1
-fi
-
-# Set up service types
-print_status "Setting up service types..."
-if [ -f "../sql/populate_service_types.sql" ]; then
-    mysql --defaults-file="$MYSQL_CONFIG_FILE" $MYSQL_DATABASE < ../sql/populate_service_types.sql >/dev/null 2>&1
-else
-    mysql --defaults-file="$MYSQL_CONFIG_FILE" $MYSQL_DATABASE < sql/populate_service_types.sql >/dev/null 2>&1
-fi
-if [ $? -eq 0 ]; then
-    print_success "Service types created"
-else
-    print_error "Failed to create service types"
-    exit 1
 fi
 
 echo ""
