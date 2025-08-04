@@ -55,6 +55,7 @@ const ownsManager = {
                             <tr>
                                 <th><i class="fas fa-user"></i> User</th>
                                 <th><i class="fas fa-car"></i> Vehicle</th>
+                                <th><i class="fas fa-id-card"></i> VIN</th>
                                 <th><i class="fas fa-calendar-plus"></i> Start Date</th>
                                 <th><i class="fas fa-calendar-minus"></i> End Date</th>
                                 <th><i class="fas fa-info-circle"></i> Status</th>
@@ -96,6 +97,7 @@ const ownsManager = {
             <tr>
                 <td>${user}</td>
                 <td>${vehicle}</td>
+                <td>${own.vin}</td>
                 <td>${Utils.formatDate(own.start_date)}</td>
                 <td>${own.end_date ? Utils.formatDate(own.end_date) : 'Active'}</td>
                 <td>
