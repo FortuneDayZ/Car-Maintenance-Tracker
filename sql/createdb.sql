@@ -34,12 +34,15 @@ CREATE TABLE Owns (
 
 CREATE TABLE CarShops (
     car_shop_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
     name VARCHAR(100) NOT NULL,
     street VARCHAR(100),
     city VARCHAR(50),
     state VARCHAR(50),
     zip_code VARCHAR(15),
-    phone_number VARCHAR(20)
+    phone_number VARCHAR(20),
+    FOREIGN KEY (user_id) REFERENCES Users(user_id)
+        ON UPDATE CASCADE ON DELETE CASCADE
 );
 
 CREATE TABLE Mechanics (
