@@ -114,8 +114,8 @@ const mechanicsManager = {
             <tr>
                 <td>${mechanic.mechanic_id}</td>
                 <td>${mechanic.name}</td>
-                <td>${mechanic.email}</td>
-                <td>${mechanic.phone_number}</td>
+                <td>${mechanic.email || 'N/A'}</td>
+                <td>${mechanic.phone_number || 'N/A'}</td>
                 <td>${shop}</td>
                 <td>
                     <span class="badge bg-primary">${services.length} Service(s)</span>
@@ -144,10 +144,10 @@ const mechanicsManager = {
                                     <h6>Contact Information</h6>
                                     <ul class="list-group list-group-flush">
                                         <li class="list-group-item">
-                                            <strong>Email:</strong> ${mechanic.email}
+                                            <strong>Email:</strong> ${mechanic.email || 'N/A'}
                                         </li>
                                         <li class="list-group-item">
-                                            <strong>Phone:</strong> ${mechanic.phone_number}
+                                            <strong>Phone:</strong> ${mechanic.phone_number || 'N/A'}
                                         </li>
                                         <li class="list-group-item">
                                             <strong>Shop:</strong> ${mechanic.shop_name || 'Unassigned'}
@@ -192,8 +192,8 @@ const mechanicsManager = {
         const formContent = `
             <form id="mechanicForm">
                 ${Utils.createFormField('Name', 'name', 'text', true).outerHTML}
-                ${Utils.createFormField('Email', 'email', 'email', true).outerHTML}
-                ${Utils.createFormField('Phone Number', 'phone_number', 'tel', true).outerHTML}
+                ${Utils.createFormField('Email', 'email', 'email', false).outerHTML}
+                ${Utils.createFormField('Phone Number', 'phone_number', 'tel', false).outerHTML}
                 ${Utils.createFormField('Car Shop', 'car_shop_id', 'select', false, shopOptions).outerHTML}
             </form>
         `;
@@ -223,8 +223,8 @@ const mechanicsManager = {
                     const formContent = `
                 <form id="mechanicForm">
                     ${Utils.createFormField('Name', 'name', 'text', true).outerHTML}
-                    ${Utils.createFormField('Email', 'email', 'email', true).outerHTML}
-                    ${Utils.createFormField('Phone Number', 'phone_number', 'tel', true).outerHTML}
+                    ${Utils.createFormField('Email', 'email', 'email', false).outerHTML}
+                    ${Utils.createFormField('Phone Number', 'phone_number', 'tel', false).outerHTML}
                     ${Utils.createFormField('Car Shop', 'car_shop_id', 'select', false, shopOptions).outerHTML}
                 </form>
             `;
@@ -255,12 +255,13 @@ const mechanicsManager = {
         };
 
         // Validation
-        if (!mechanicData.name || !mechanicData.email || !mechanicData.phone_number) {
-            Utils.showAlert('Name, Email, and Phone Number are required', 'danger');
+        if (!mechanicData.name) {
+            Utils.showAlert('Name is required', 'danger');
             return;
         }
 
-        if (!Utils.validateEmail(mechanicData.email)) {
+        // Validate email only if provided
+        if (mechanicData.email && !Utils.validateEmail(mechanicData.email)) {
             Utils.showAlert('Please enter a valid email address', 'danger');
             return;
         }
@@ -269,10 +270,13 @@ const mechanicsManager = {
             if (mechanicId) {
                 // Update existing mechanic in database
                 const carShopIdClause = mechanicData.car_shop_id ? `car_shop_id = ${mechanicData.car_shop_id}` : 'car_shop_id = NULL';
+                const emailClause = mechanicData.email ? `email = '${mechanicData.email}'` : 'email = NULL';
+                const phoneClause = mechanicData.phone_number ? `phone_number = '${mechanicData.phone_number}'` : 'phone_number = NULL';
+                
                 const sql = `UPDATE Mechanics SET 
                     name = '${mechanicData.name}', 
-                    email = '${mechanicData.email}', 
-                    phone_number = '${mechanicData.phone_number}', 
+                    ${emailClause}, 
+                    ${phoneClause}, 
                     ${carShopIdClause} 
                     WHERE mechanic_id = ${mechanicId}`;
                 
@@ -281,8 +285,11 @@ const mechanicsManager = {
             } else {
                 // Add new mechanic to database
                 const carShopIdClause = mechanicData.car_shop_id ? `${mechanicData.car_shop_id}` : 'NULL';
+                const emailValue = mechanicData.email ? `'${mechanicData.email}'` : 'NULL';
+                const phoneValue = mechanicData.phone_number ? `'${mechanicData.phone_number}'` : 'NULL';
+                
                 const sql = `INSERT INTO Mechanics (name, email, phone_number, car_shop_id) 
-                           VALUES ('${mechanicData.name}', '${mechanicData.email}', '${mechanicData.phone_number}', ${carShopIdClause})`;
+                           VALUES ('${mechanicData.name}', ${emailValue}, ${phoneValue}, ${carShopIdClause})`;
                 
                 await Database.insert(sql);
                 Utils.showAlert('Mechanic added successfully', 'success');

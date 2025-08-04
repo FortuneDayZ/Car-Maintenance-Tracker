@@ -159,7 +159,7 @@ const shopsManager = {
                                             <strong>Zip Code:</strong> ${shop.zip_code || 'N/A'}
                                         </li>
                                         <li class="list-group-item">
-                                            <strong>Phone:</strong> ${shop.phone_number}
+                                            <strong>Phone:</strong> ${shop.phone_number || 'N/A'}
                                         </li>
                                     </ul>
                                 </div>
@@ -194,11 +194,11 @@ const shopsManager = {
         const formContent = `
             <form id="shopForm">
                 ${Utils.createFormField('Name', 'name', 'text', true).outerHTML}
-                ${Utils.createFormField('Street', 'street', 'text', true).outerHTML}
-                ${Utils.createFormField('City', 'city', 'text', true).outerHTML}
-                ${Utils.createFormField('State', 'state', 'text', true).outerHTML}
-                ${Utils.createFormField('Zip Code', 'zip_code', 'text', true).outerHTML}
-                ${Utils.createFormField('Phone Number', 'phone_number', 'tel', true).outerHTML}
+                ${Utils.createFormField('Street', 'street', 'text', false).outerHTML}
+                ${Utils.createFormField('City', 'city', 'text', false).outerHTML}
+                ${Utils.createFormField('State', 'state', 'text', false).outerHTML}
+                ${Utils.createFormField('Zip Code', 'zip_code', 'text', false).outerHTML}
+                ${Utils.createFormField('Phone Number', 'phone_number', 'tel', false).outerHTML}
             </form>
         `;
 
@@ -217,11 +217,11 @@ const shopsManager = {
             const formContent = `
                 <form id="shopForm">
                     ${Utils.createFormField('Name', 'name', 'text', true).outerHTML}
-                    ${Utils.createFormField('Street', 'street', 'text', true).outerHTML}
-                    ${Utils.createFormField('City', 'city', 'text', true).outerHTML}
-                    ${Utils.createFormField('State', 'state', 'text', true).outerHTML}
-                    ${Utils.createFormField('Zip Code', 'zip_code', 'text', true).outerHTML}
-                    ${Utils.createFormField('Phone Number', 'phone_number', 'tel', true).outerHTML}
+                    ${Utils.createFormField('Street', 'street', 'text', false).outerHTML}
+                    ${Utils.createFormField('City', 'city', 'text', false).outerHTML}
+                    ${Utils.createFormField('State', 'state', 'text', false).outerHTML}
+                    ${Utils.createFormField('Zip Code', 'zip_code', 'text', false).outerHTML}
+                    ${Utils.createFormField('Phone Number', 'phone_number', 'tel', false).outerHTML}
                 </form>
             `;
 
@@ -255,29 +255,41 @@ const shopsManager = {
         };
 
         // Validation
-        if (!shopData.name || !shopData.street || !shopData.city || !shopData.state || !shopData.zip_code || !shopData.phone_number) {
-            Utils.showAlert('All fields are required', 'danger');
+        if (!shopData.name) {
+            Utils.showAlert('Name is required', 'danger');
             return;
         }
 
         try {
             if (shopId) {
                 // Update existing shop in database
+                const streetClause = shopData.street ? `street = '${shopData.street}'` : 'street = NULL';
+                const cityClause = shopData.city ? `city = '${shopData.city}'` : 'city = NULL';
+                const stateClause = shopData.state ? `state = '${shopData.state}'` : 'state = NULL';
+                const zipClause = shopData.zip_code ? `zip_code = '${shopData.zip_code}'` : 'zip_code = NULL';
+                const phoneClause = shopData.phone_number ? `phone_number = '${shopData.phone_number}'` : 'phone_number = NULL';
+                
                 const sql = `UPDATE CarShops SET 
                     name = '${shopData.name}', 
-                    street = '${shopData.street}', 
-                    city = '${shopData.city}', 
-                    state = '${shopData.state}', 
-                    zip_code = '${shopData.zip_code}', 
-                    phone_number = '${shopData.phone_number}' 
+                    ${streetClause}, 
+                    ${cityClause}, 
+                    ${stateClause}, 
+                    ${zipClause}, 
+                    ${phoneClause} 
                     WHERE car_shop_id = ${shopId}`;
                 
                 await Database.update(sql);
                 Utils.showAlert('Car shop updated successfully', 'success');
             } else {
                 // Add new shop to database
+                const streetValue = shopData.street ? `'${shopData.street}'` : 'NULL';
+                const cityValue = shopData.city ? `'${shopData.city}'` : 'NULL';
+                const stateValue = shopData.state ? `'${shopData.state}'` : 'NULL';
+                const zipValue = shopData.zip_code ? `'${shopData.zip_code}'` : 'NULL';
+                const phoneValue = shopData.phone_number ? `'${shopData.phone_number}'` : 'NULL';
+                
                 const sql = `INSERT INTO CarShops (name, street, city, state, zip_code, phone_number) 
-                           VALUES ('${shopData.name}', '${shopData.street}', '${shopData.city}', '${shopData.state}', '${shopData.zip_code}', '${shopData.phone_number}')`;
+                           VALUES ('${shopData.name}', ${streetValue}, ${cityValue}, ${stateValue}, ${zipValue}, ${phoneValue})`;
                 
                 await Database.insert(sql);
                 Utils.showAlert('Car shop added successfully', 'success');
