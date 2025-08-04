@@ -260,8 +260,12 @@ const shopsManager = {
         }
 
         // Validation
-        if (!shopData.name || !shopData.street || !shopData.city || !shopData.state || !shopData.zip_code || !shopData.phone_number || (AuthManager.isAdmin() && !shopData.user_id)) {
-            Utils.showAlert('All fields are required', 'danger');
+        if (!shopData.name) {
+            Utils.showAlert('Name is required', 'danger');
+            return;
+        }
+        if (AuthManager.isAdmin() && !shopData.user_id) {
+            Utils.showAlert('UserID is required', 'danger');
             return;
         }
 

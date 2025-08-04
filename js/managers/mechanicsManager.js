@@ -294,6 +294,11 @@ const mechanicsManager = {
             return;
         }
 
+        if (!mechanicData.car_shop_id || isNaN(mechanicData.car_shop_id)) {
+            Utils.showAlert('Car Shop is required', 'danger');
+            return;
+        }
+
         // Validate email only if provided
         if (mechanicData.email && !Utils.validateEmail(mechanicData.email)) {
             Utils.showAlert('Please enter a valid email address', 'danger');
