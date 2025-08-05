@@ -454,8 +454,8 @@ const maintenanceManager = {
             <form id="maintenanceForm">
                 ${userField}
                 ${Utils.createFormField('Vehicle', 'vin', 'select', true, vehicleOptions).outerHTML}
-                ${Utils.createFormField('Date', 'rec_date', 'date', true).outerHTML}
-                ${Utils.createFormField('Mileage', 'rec_mileage', 'number', true).outerHTML}
+                ${Utils.createFormField('Recommended Date', 'rec_date', 'date', true).outerHTML}
+                ${Utils.createFormField('Recommended Mileage', 'rec_mileage', 'number', true).outerHTML}
                 ${Utils.createFormField('Status', 'status', 'select', true, statusOptions).outerHTML}
                 ${Utils.createFormField('Service Types', 'service_types', 'select', false, serviceTypeOptions).outerHTML}
             </form>
@@ -536,8 +536,8 @@ const maintenanceManager = {
             <form id="maintenanceForm">
                 ${Utils.createFormField('User', 'user_id', 'select', true, userOptions).outerHTML}
                 ${Utils.createFormField('Vehicle', 'vin', 'select', true, vehicleOptions).outerHTML}
-                ${Utils.createFormField('Date', 'rec_date', 'date', true).outerHTML}
-                ${Utils.createFormField('Mileage', 'rec_mileage', 'number', true).outerHTML}
+                ${Utils.createFormField('Recommended Date', 'rec_date', 'date', true).outerHTML}
+                ${Utils.createFormField('Recommended Mileage', 'rec_mileage', 'number', true).outerHTML}
                 ${Utils.createFormField('Status', 'status', 'select', true, statusOptions).outerHTML}
                 ${Utils.createFormField('Service Types', 'service_types', 'select', false, serviceTypeOptions).outerHTML}
             </form>
