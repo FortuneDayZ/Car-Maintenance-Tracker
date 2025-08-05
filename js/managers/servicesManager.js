@@ -279,9 +279,12 @@ const servicesManager = {
                 ${Utils.createFormField('Current Mileage', 'current_mileage', 'number', true).outerHTML}
                 ${Utils.createFormField('Cost', 'cost', 'number', true).outerHTML}
                 ${Utils.createFormField('Description', 'description', 'textarea', false).outerHTML}
-                ${Utils.createFormField('Mechanics', 'mechanics', 'select', false, mechanicOptions).outerHTML}
-                ${Utils.createFormField('Service Types', 'service_types', 'select', false, serviceTypeOptions).outerHTML}
-                ${Utils.createFormField('Parts Used', 'parts', 'select', false, partOptions).outerHTML}
+                ${Utils.createFormField('Mechanics', 'mechanics', 'select', false, mechanicOptions, true).outerHTML}
+                <div class="multi-select-help">Hold Ctrl (or Cmd on Mac) to select multiple mechanics</div>
+                ${Utils.createFormField('Service Types', 'service_types', 'select', false, serviceTypeOptions, true).outerHTML}
+                <div class="multi-select-help">Hold Ctrl (or Cmd on Mac) to select multiple service types</div>
+                ${Utils.createFormField('Parts Used', 'parts', 'select', false, partOptions, true).outerHTML}
+                <div class="multi-select-help">Hold Ctrl (or Cmd on Mac) to select multiple parts</div>
             </form>
         `;
 
@@ -329,17 +332,15 @@ const servicesManager = {
             }));
 
             // Get current service types for this service
-            let currentServiceType = '';
+            let currentServiceTypes = [];
             try {
-                const currentServiceTypes = await Database.select(`
+                const currentServiceTypesResult = await Database.select(`
                     SELECT st.service_type 
                     FROM ServiceTypes st
                     JOIN ServiceRecords_ServiceTypes srst ON st.service_type = srst.service_type
                     WHERE srst.service_id = ${serviceId}
                 `);
-                if (currentServiceTypes.length > 0) {
-                    currentServiceType = currentServiceTypes[0].service_type;
-                }
+                currentServiceTypes = currentServiceTypesResult.map(st => st.service_type);
             } catch (error) {
                 console.error('Error fetching current service types:', error);
             }
@@ -350,18 +351,16 @@ const servicesManager = {
                 value: part.part_id,
                 text: `${part.name} - ${part.manufacturer} (${Utils.formatCurrency(part.unit_price)})`
             }));
-            // Get current part for this service
-            let currentPart = '';
+            // Get current parts for this service
+            let currentParts = [];
             try {
-                const currentParts = await Database.select(`
+                const currentPartsResult = await Database.select(`
                     SELECT p.part_id 
                     FROM Parts p
                     JOIN ServiceRecords_Parts srp ON p.part_id = srp.part_id
                     WHERE srp.service_id = ${serviceId}
                 `);
-                if (currentParts.length > 0) {
-                    currentPart = currentParts[0].part_id;
-                }
+                currentParts = currentPartsResult.map(p => p.part_id);
             } catch (error) {
                 console.error('Error fetching current parts:', error);
             }
@@ -374,7 +373,7 @@ const servicesManager = {
             }));
 
             // Get current mechanics for this service
-            let currentMechanics = '';
+            let currentMechanics = [];
             try {
                 const currentMechanicsResult = await Database.select(`
                     SELECT m.mechanic_id, m.name, m.email
@@ -382,9 +381,7 @@ const servicesManager = {
                     JOIN WorkedOn wo ON m.mechanic_id = wo.mechanic_id
                     WHERE wo.service_id = ${serviceId}
                 `);
-                if (currentMechanicsResult.length > 0) {
-                    currentMechanics = currentMechanicsResult[0].mechanic_id;
-                }
+                currentMechanics = currentMechanicsResult.map(m => m.mechanic_id);
             } catch (error) {
                 console.error('Error fetching current mechanics:', error);
             }
@@ -396,25 +393,67 @@ const servicesManager = {
                 ${Utils.createFormField('Current Mileage', 'current_mileage', 'number', true).outerHTML}
                 ${Utils.createFormField('Cost', 'cost', 'number', true).outerHTML}
                 ${Utils.createFormField('Description', 'description', 'textarea', false).outerHTML}
-                ${Utils.createFormField('Mechanics', 'mechanics', 'select', false, mechanicOptions).outerHTML}
-                ${Utils.createFormField('Service Types', 'service_types', 'select', false, serviceTypeOptions).outerHTML}
-                ${Utils.createFormField('Parts Used', 'parts', 'select', false, partOptions).outerHTML}
+                ${Utils.createFormField('Mechanics', 'mechanics', 'select', false, mechanicOptions, true).outerHTML}
+                <div class="multi-select-help">Hold Ctrl (or Cmd on Mac) to select multiple mechanics</div>
+                ${Utils.createFormField('Service Types', 'service_types', 'select', false, serviceTypeOptions, true).outerHTML}
+                <div class="multi-select-help">Hold Ctrl (or Cmd on Mac) to select multiple service types</div>
+                ${Utils.createFormField('Parts Used', 'parts', 'select', false, partOptions, true).outerHTML}
+                <div class="multi-select-help">Hold Ctrl (or Cmd on Mac) to select multiple parts</div>
             </form>
         `;
 
         Utils.ModalManager.show('Edit Service Record', formContent, () => servicesManager.saveService(serviceId));
         
         // Populate form with existing data after modal is shown
-                    Utils.populateForm({
-                vin: service.vin,
-                service_date: service.service_date,
-                current_mileage: service.current_mileage,
-                cost: service.cost,
-                description: service.description,
-                service_types: currentServiceType,
-                parts: currentPart,
-                mechanics: currentMechanics
-            });
+        Utils.populateForm({
+            vin: service.vin,
+            service_date: service.service_date,
+            current_mileage: service.current_mileage,
+            cost: service.cost,
+            description: service.description
+        });
+
+        // Populate multi-select fields after form is populated
+        setTimeout(() => {
+            // Populate service types
+            const serviceTypesSelect = document.getElementById('service_types');
+            if (serviceTypesSelect && currentServiceTypes.length > 0) {
+                currentServiceTypes.forEach(serviceType => {
+                    for (let i = 0; i < serviceTypesSelect.options.length; i++) {
+                        if (serviceTypesSelect.options[i].value === serviceType) {
+                            serviceTypesSelect.options[i].selected = true;
+                            break;
+                        }
+                    }
+                });
+            }
+
+            // Populate parts
+            const partsSelect = document.getElementById('parts');
+            if (partsSelect && currentParts.length > 0) {
+                currentParts.forEach(partId => {
+                    for (let i = 0; i < partsSelect.options.length; i++) {
+                        if (partsSelect.options[i].value === partId.toString()) {
+                            partsSelect.options[i].selected = true;
+                            break;
+                        }
+                    }
+                });
+            }
+
+            // Populate mechanics
+            const mechanicsSelect = document.getElementById('mechanics');
+            if (mechanicsSelect && currentMechanics.length > 0) {
+                currentMechanics.forEach(mechanicId => {
+                    for (let i = 0; i < mechanicsSelect.options.length; i++) {
+                        if (mechanicsSelect.options[i].value === mechanicId.toString()) {
+                            mechanicsSelect.options[i].selected = true;
+                            break;
+                        }
+                    }
+                });
+            }
+        }, 100);
         } catch (error) {
             console.error('Error loading service record for edit:', error);
             Utils.showAlert(`Error loading service record: ${error.message}`, 'danger');
@@ -433,12 +472,17 @@ const servicesManager = {
             description: formData.get('description')
         };
 
-        // Get selected service types
-        const selectedServiceTypes = formData.get('service_types');
-        // Get selected part
-        const selectedParts = formData.get('parts');
-        // Get selected mechanics
-        const selectedMechanics = formData.get('mechanics');
+        // Get selected service types (multiple)
+        const serviceTypesSelect = document.getElementById('service_types');
+        const selectedServiceTypes = serviceTypesSelect ? Utils.getSelectedValues(serviceTypesSelect) : [];
+        
+        // Get selected parts (multiple)
+        const partsSelect = document.getElementById('parts');
+        const selectedParts = partsSelect ? Utils.getSelectedValues(partsSelect) : [];
+        
+        // Get selected mechanics (multiple)
+        const mechanicsSelect = document.getElementById('mechanics');
+        const selectedMechanics = mechanicsSelect ? Utils.getSelectedValues(mechanicsSelect) : [];
 
         // Validation - check for empty strings and NaN values
         if (!serviceData.vin || serviceData.vin.trim() === '') {
@@ -486,24 +530,25 @@ const servicesManager = {
                 Utils.showAlert('Service record added successfully', 'success');
             }
 
-            // Handle service types and parts
+            // Handle service types, parts, and mechanics
             if (newServiceId) {
                 // Remove any existing service types for this service
                 await Database.deleteRecords('ServiceRecords_ServiceTypes', `service_id = ${newServiceId}`);
-                // Add the selected service type if one was chosen
-                if (selectedServiceTypes && selectedServiceTypes.trim() !== '') {
+                // Add the selected service types
+                for (const serviceType of selectedServiceTypes) {
                     await Database.insertRecord('ServiceRecords_ServiceTypes', {
                         service_id: newServiceId,
-                        service_type: selectedServiceTypes
+                        service_type: serviceType
                     });
                 }
+                
                 // Remove any existing parts for this service
                 await Database.deleteRecords('ServiceRecords_Parts', `service_id = ${newServiceId}`);
-                // Add the selected part if one was chosen
-                if (selectedParts && selectedParts.trim() !== '') {
+                // Add the selected parts
+                for (const partId of selectedParts) {
                     await Database.insertRecord('ServiceRecords_Parts', {
                         service_id: newServiceId,
-                        part_id: parseInt(selectedParts)
+                        part_id: parseInt(partId)
                     });
                 }
             }
@@ -512,11 +557,11 @@ const servicesManager = {
             if (newServiceId) {
                 // Remove any existing mechanics for this service
                 await Database.deleteRecords('WorkedOn', `service_id = ${newServiceId}`);
-                // Add the selected mechanic if one was chosen
-                if (selectedMechanics && selectedMechanics.trim() !== '') {
+                // Add the selected mechanics
+                for (const mechanicId of selectedMechanics) {
                     await Database.insertRecord('WorkedOn', {
                         service_id: newServiceId,
-                        mechanic_id: parseInt(selectedMechanics)
+                        mechanic_id: parseInt(mechanicId)
                     });
                 }
             }

@@ -155,7 +155,7 @@ const Utils = {
     },
 
     // Create form field
-    createFormField: (label, name, type = 'text', required = true, options = null) => {
+    createFormField: (label, name, type = 'text', required = true, options = null, multiple = false) => {
         const formGroup = document.createElement('div');
         formGroup.className = 'mb-3';
         
@@ -176,11 +176,20 @@ const Utils = {
             inputElement.id = name;
             if (required) inputElement.required = true;
             
-            // Add default option
-            const defaultOption = document.createElement('option');
-            defaultOption.value = '';
-            defaultOption.textContent = `Select ${label}`;
-            inputElement.appendChild(defaultOption);
+            // Add multiple attribute if specified
+            if (multiple) {
+                inputElement.multiple = true;
+                inputElement.size = 4; // Show 4 options at once
+                inputElement.style.minHeight = '120px';
+            }
+            
+            // Add default option only for single select
+            if (!multiple) {
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = `Select ${label}`;
+                inputElement.appendChild(defaultOption);
+            }
             
             // Add options
             if (options) {
@@ -238,6 +247,17 @@ const Utils = {
         }
         
         return badges.join(' ');
+    },
+
+    // Get selected values from a multi-select dropdown
+    getSelectedValues: (selectElement) => {
+        const selectedValues = [];
+        for (let i = 0; i < selectElement.options.length; i++) {
+            if (selectElement.options[i].selected) {
+                selectedValues.push(selectElement.options[i].value);
+            }
+        }
+        return selectedValues;
     },
 
     // Create detail row for expandable content
