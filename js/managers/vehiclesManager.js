@@ -6,6 +6,7 @@ const vehiclesManager = {
             <label for="filter-column">Filter by:</label>
             <select id="filter-column" class="form-select form-select-sm" style="width: auto;">
                 <option value="">-- Select Column --</option>
+                <option value="vin">VIN</option>
                 <option value="make">Make</option>
                 <option value="model">Model</option>
                 <option value="year">Year</option>
