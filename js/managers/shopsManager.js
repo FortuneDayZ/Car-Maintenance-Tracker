@@ -2,6 +2,24 @@
 const shopsManager = {
     container: null,
 
+    filterUI: () => {
+        return `
+            <div class="mb-3 d-flex align-items-center gap-2">
+                <label for="shops-filter-column">Filter by:</label>
+                <select id="shops-filter-column" class="form-select form-select-sm" style="width: auto;">
+                    <option value="">-- Select Column --</option>
+                    <option value="name">Name</option>
+                    <option value="address">Address</option>
+                    <option value="phone_number">Phone Number</option>
+                    ${AuthManager.isAdmin() ? '<option value="user_id">User ID</option>' : ''}
+                </select>
+                <input type="text" id="shops-filter-value" class="form-control form-control-sm" placeholder="Enter filter value" style="width: 200px;">
+                <button class="btn btn-sm btn-outline-primary" onclick="shopsManager.applyFilter()">Apply</button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="shopsManager.clearFilter()">Clear</button>
+            </div>
+        `;
+    },
+
     init: () => {
         shopsManager.container = document.getElementById('shops-table-container');
         shopsManager.render();
@@ -54,7 +72,7 @@ const shopsManager = {
                 </div>
             `;
             
-            shopsManager.container.innerHTML = table;
+            shopsManager.container.innerHTML = shopsManager.filterUI() + table;
         } catch (error) {
             console.error('Error loading shops:', error);
             shopsManager.container.innerHTML = `
@@ -348,7 +366,82 @@ const shopsManager = {
         } catch (error) {
             Utils.showAlert(`Error deleting shop: ${error.message}`, 'danger');
         }
-    }
+    },
+
+    applyFilter: async () => {
+        const column = document.getElementById('shops-filter-column').value;
+        const value = document.getElementById('shops-filter-value').value.trim();
+    
+        if (!column || !value) {
+            Utils.showAlert('Please select a column and enter a value.', 'warning');
+            return;
+        }
+    
+        try {
+            let whereClause = '';
+    
+            if (['name', 'street', 'city', 'state', 'zip_code', 'phone_number'].includes(column)) {
+                whereClause = `${column} LIKE '%${value}%'`;
+            } else if (column === 'user_id') {
+                whereClause = `user_id = ${value}`;
+            } else if (column == 'address') {
+                whereClause = `(c.street LIKE '%${value}%' OR c.city LIKE '%${value}%' OR c.state LIKE '%${value}%' OR c.zip_code LIKE '%${value}%')`;
+            } else {
+                whereClause = `${column} LIKE '%${value}%'`;
+            }
+    
+            if (!AuthManager.isAdmin()) {
+                whereClause = `user_id = ${AuthManager.currentUser.user_id} AND ${whereClause}`;
+            }
+    
+            const query = `
+                SELECT *
+                FROM CarShops c
+                WHERE ${whereClause}
+            `;
+    
+            const shops = await Database.select(query);
+    
+            // Create table rows asynchronously
+            const tableRows = [];
+            for (const shop of shops) {
+                const row = await shopsManager.createShopRow(shop);
+                tableRows.push(row);
+            }
+    
+            const table = `
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Address</th>
+                                <th>Phone</th>
+                                ${AuthManager.isAdmin() ? '<th>User ID</th>' : ''}
+                                <th>Mechanics</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${tableRows.join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+    
+            shopsManager.container.innerHTML = shopsManager.filterUI() + table;
+        } catch (error) {
+            Utils.showAlert(`Error applying filter: ${error.message}`, 'danger');
+        }
+    },
+    
+    clearFilter: async () => {
+        document.getElementById('shops-filter-column').value = '';
+        document.getElementById('shops-filter-value').value = '';
+        await shopsManager.render();
+    },
+    
 };
 
 // Make shopsManager available globally
