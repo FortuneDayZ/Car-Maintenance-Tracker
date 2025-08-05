@@ -669,6 +669,11 @@ const servicesManager = {
             if (window.mechanicsManager) {
                 await mechanicsManager.render();
             }
+
+            // Refresh parts section (since parts are part of services)
+            if (window.partsManager) {
+                await partsManager.render();
+            }
             
             // Refresh vehicles section (since services are linked to vehicles)
             if (window.vehiclesManager) {
