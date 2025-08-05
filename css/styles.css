@@ -805,3 +805,63 @@
 .log-entry.error {
     color: #dc3545;
 }
+
+/* Expense Details Dropdown Styles */
+.details-row {
+    background-color: rgba(13, 110, 253, 0.05);
+    border-left: 4px solid var(--bs-primary);
+}
+
+.details-row .card {
+    border: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin: 0.5rem 0;
+}
+
+.details-row .card-body {
+    padding: 1rem;
+}
+
+.details-row .card-title {
+    color: var(--bs-primary);
+    font-weight: 600;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid var(--bs-primary);
+    padding-bottom: 0.5rem;
+}
+
+.details-row .table-sm td {
+    padding: 0.25rem 0.5rem;
+    border: none;
+    background: transparent;
+}
+
+.details-row .table-sm tr:nth-child(even) {
+    background-color: rgba(13, 110, 253, 0.02);
+}
+
+.details-row .table-sm tr:hover {
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+.details-row h6 {
+    color: var(--bs-primary);
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+}
+
+/* Animation for details dropdown */
+.details-row {
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

@@ -153,32 +153,8 @@ const expensesManager = {
         const vehicle = expense.make && expense.model && expense.year ? 
             `${expense.year} ${expense.make} ${expense.model}` : 'Unknown Vehicle';
         
-        // Create details based on expense type
-        let details = '';
-        switch (expense.category) {
-            case 'Maintenance':
-                details = expense.service_id ? 
-                    `<span class="badge bg-info">Service ID: ${expense.service_id}</span>` : 
-                    '<span class="badge bg-secondary">No Service Record</span>';
-                break;
-            case 'Registration':
-                details = expense.renewal_date ? 
-                    `<span class="badge bg-warning">Renewal: ${Utils.formatDate(expense.renewal_date)}</span>` : 
-                    '<span class="badge bg-secondary">No Renewal Info</span>';
-                break;
-            case 'Insurance':
-                details = expense.policy_number ? 
-                    `<span class="badge bg-primary">Policy: ${expense.policy_number}</span>` : 
-                    '<span class="badge bg-secondary">No Policy Info</span>';
-                break;
-            case 'Fuel':
-                details = expense.gallons ? 
-                    `<span class="badge bg-success">${expense.gallons} gal</span>` : 
-                    '<span class="badge bg-secondary">No Fuel Info</span>';
-                break;
-            default:
-                details = '<span class="badge bg-secondary">Miscellaneous</span>';
-        }
+        // Create detailed information for dropdown
+        const detailedInfo = expensesManager.createDetailedInfo(expense);
         
         return `
             <tr>
@@ -188,7 +164,11 @@ const expensesManager = {
                 <td><span class="badge bg-secondary">${expense.category}</span></td>
                 <td>${Utils.formatCurrency(expense.amount)}</td>
                 <td>${expense.description}</td>
-                <td>${details}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-info" onclick="expensesManager.toggleDetails(${expense.expense_id})" title="Show Details">
+                        Details
+                    </button>
+                </td>
                 <td>
                     <button class="btn btn-sm btn-primary" onclick="expensesManager.showEditForm(${expense.expense_id})">
                         <i class="fas fa-edit"></i>
@@ -196,6 +176,16 @@ const expensesManager = {
                     <button class="btn btn-sm btn-danger" onclick="expensesManager.deleteExpense(${expense.expense_id})">
                         <i class="fas fa-trash"></i>
                     </button>
+                </td>
+            </tr>
+            <tr id="details-row-${expense.expense_id}" class="details-row" style="display: none;">
+                <td colspan="8">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title">Detailed Information</h6>
+                            ${detailedInfo}
+                        </div>
+                    </div>
                 </td>
             </tr>
         `;
@@ -903,6 +893,132 @@ const expensesManager = {
         } catch (error) {
             console.error('Error exporting expenses to CSV:', error);
             Utils.showAlert('Error exporting expenses: ' + error.message, 'danger');
+        }
+    },
+
+    // Create detailed information for expense dropdown
+    createDetailedInfo: (expense) => {
+        let detailedInfo = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Basic Information</h6>
+                    <table class="table table-sm">
+                        <tr><td><strong>Expense ID:</strong></td><td>${expense.expense_id}</td></tr>
+                        <tr><td><strong>Vehicle:</strong></td><td>${expense.year} ${expense.make} ${expense.model} (${expense.vin})</td></tr>
+                        <tr><td><strong>Date:</strong></td><td>${Utils.formatDate(expense.date)}</td></tr>
+                        <tr><td><strong>Category:</strong></td><td><span class="badge bg-secondary">${expense.category}</span></td></tr>
+                        <tr><td><strong>Amount:</strong></td><td>${Utils.formatCurrency(expense.amount)}</td></tr>
+                        <tr><td><strong>Description:</strong></td><td>${expense.description || 'N/A'}</td></tr>
+                    </table>
+                </div>
+        `;
+
+        // Add category-specific details only if they exist for this category
+        let categoryDetails = '';
+        switch (expense.category) {
+            case 'Maintenance':
+                if (expense.service_id) {
+                    categoryDetails = `
+                        <div class="col-md-6">
+                            <h6>Maintenance Details</h6>
+                            <table class="table table-sm">
+                                <tr><td><strong>Service ID:</strong></td><td>${expense.service_id}</td></tr>
+                                <tr><td><strong>Service Record:</strong></td><td>Linked to service record</td></tr>
+                            </table>
+                        </div>
+                    `;
+                }
+                break;
+            case 'Registration':
+                if (expense.renewal_date || expense.renewal_period || expense.state) {
+                    categoryDetails = `
+                        <div class="col-md-6">
+                            <h6>Registration Details</h6>
+                            <table class="table table-sm">
+                                ${expense.renewal_date ? `<tr><td><strong>Renewal Date:</strong></td><td>${Utils.formatDate(expense.renewal_date)}</td></tr>` : ''}
+                                ${expense.renewal_period ? `<tr><td><strong>Renewal Period:</strong></td><td>${expense.renewal_period}</td></tr>` : ''}
+                                ${expense.state ? `<tr><td><strong>State:</strong></td><td>${expense.state}</td></tr>` : ''}
+                            </table>
+                        </div>
+                    `;
+                }
+                break;
+            case 'Insurance':
+                if (expense.policy_number || expense.start_date || expense.end_date || expense.provider_name) {
+                    categoryDetails = `
+                        <div class="col-md-6">
+                            <h6>Insurance Details</h6>
+                            <table class="table table-sm">
+                                ${expense.policy_number ? `<tr><td><strong>Policy Number:</strong></td><td>${expense.policy_number}</td></tr>` : ''}
+                                ${expense.start_date ? `<tr><td><strong>Start Date:</strong></td><td>${Utils.formatDate(expense.start_date)}</td></tr>` : ''}
+                                ${expense.end_date ? `<tr><td><strong>End Date:</strong></td><td>${Utils.formatDate(expense.end_date)}</td></tr>` : ''}
+                                ${expense.provider_name ? `<tr><td><strong>Provider Name:</strong></td><td>${expense.provider_name}</td></tr>` : ''}
+                            </table>
+                        </div>
+                    `;
+                }
+                break;
+            case 'Fuel':
+                if (expense.gallons || expense.current_mileage || expense.fuel_type) {
+                    categoryDetails = `
+                        <div class="col-md-6">
+                            <h6>Fuel Details</h6>
+                            <table class="table table-sm">
+                                ${expense.gallons ? `<tr><td><strong>Gallons:</strong></td><td>${expense.gallons}</td></tr>` : ''}
+                                ${expense.current_mileage ? `<tr><td><strong>Current Mileage:</strong></td><td>${expense.current_mileage.toLocaleString()}</td></tr>` : ''}
+                                ${expense.fuel_type ? `<tr><td><strong>Fuel Type:</strong></td><td>${expense.fuel_type}</td></tr>` : ''}
+                                ${expense.gallons && expense.amount ? `<tr><td><strong>Cost per Gallon:</strong></td><td>${Utils.formatCurrency(expense.amount / expense.gallons)}</td></tr>` : ''}
+                            </table>
+                        </div>
+                    `;
+                }
+                break;
+            case 'Misc':
+                categoryDetails = `
+                    <div class="col-md-6">
+                        <h6>Miscellaneous Details</h6>
+                        <table class="table table-sm">
+                            <tr><td><strong>Type:</strong></td><td>Miscellaneous expense</td></tr>
+                            <tr><td><strong>Additional Info:</strong></td><td>No additional category-specific data</td></tr>
+                        </table>
+                    </div>
+                `;
+                break;
+        }
+
+        // Only add category details section if there are category-specific details to show
+        if (categoryDetails) {
+            detailedInfo += categoryDetails;
+        }
+
+        detailedInfo += `
+            </div>
+        `;
+
+        return detailedInfo;
+    },
+
+    // Toggle details dropdown for expense row
+    toggleDetails: (expenseId) => {
+        const detailsRow = document.getElementById(`details-row-${expenseId}`);
+        const infoButton = document.querySelector(`button[onclick="expensesManager.toggleDetails(${expenseId})"]`);
+        
+        if (detailsRow.style.display === 'none') {
+            detailsRow.style.display = 'table-row';
+            if (infoButton) {
+                infoButton.innerHTML = 'Hide';
+                infoButton.title = 'Hide Details';
+                infoButton.classList.remove('btn-outline-info');
+                infoButton.classList.add('btn-outline-secondary');
+            }
+        } else {
+            detailsRow.style.display = 'none';
+            if (infoButton) {
+                infoButton.innerHTML = 'Details';
+                infoButton.title = 'Show Details';
+                infoButton.classList.remove('btn-outline-secondary');
+                infoButton.classList.add('btn-outline-info');
+            }
         }
     },
 
