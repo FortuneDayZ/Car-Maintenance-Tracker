@@ -3,6 +3,24 @@ const maintenanceManager = {
     container: null,
     reminderCheckInterval: null,
 
+    filterUI: `
+        <div class="mb-3 d-flex align-items-center gap-2">
+            <label for="maintenance-filter-column">Filter by:</label>
+            <select id="maintenance-filter-column" class="form-select form-select-sm" style="width: auto;">
+                <option value="">-- Select Column --</option>
+                <option value="username">User</option>
+                <option value="make">Vehicle Make</option>
+                <option value="model">Vehicle Model</option>
+                <option value="year">Vehicle Year</option>
+                <option value="rec_date">Date</option>
+                <option value="status">Status</option>
+            </select>
+            <input type="text" id="maintenance-filter-value" class="form-control form-control-sm" placeholder="Enter filter value" style="width: 200px;">
+            <button class="btn btn-sm btn-outline-primary" onclick="maintenanceManager.applyFilter()">Apply</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="maintenanceManager.clearFilter()">Clear</button>
+        </div>
+    `,
+
     init: () => {
         maintenanceManager.container = document.getElementById('maintenance-table-container');
         maintenanceManager.render();
@@ -231,7 +249,7 @@ const maintenanceManager = {
                 </div>
             `;
             
-            maintenanceManager.container.innerHTML = table;
+            maintenanceManager.container.innerHTML = maintenanceManager.filterUI + table;
         } catch (error) {
             console.error('Error loading upcoming services:', error);
             maintenanceManager.container.innerHTML = `
@@ -937,6 +955,80 @@ const maintenanceManager = {
             clearInterval(maintenanceManager.reminderCheckInterval);
             maintenanceManager.reminderCheckInterval = null;
         }
+    },
+
+    applyFilter: async () => {
+        const column = document.getElementById('maintenance-filter-column').value;
+        const value = document.getElementById('maintenance-filter-value').value.trim();
+    
+        if (!column || !value) {
+            Utils.showAlert('Please select a column and enter a value.', 'warning');
+            return;
+        }
+    
+        try {
+            let query;
+            if (AuthManager.isAdmin()) {
+                query = `
+                    SELECT me.*, u.username, v.make, v.model, v.year 
+                    FROM UpcomingServices me
+                    LEFT JOIN Users u ON me.user_id = u.user_id
+                    LEFT JOIN Vehicles v ON me.vin = v.vin
+                    WHERE ${column} LIKE '%${value}%'
+                    ORDER BY me.rec_date DESC
+                `;
+            } else {
+                const userId = AuthManager.currentUser.user_id;
+                query = `
+                    SELECT me.*, u.username, v.make, v.model, v.year 
+                    FROM UpcomingServices me
+                    LEFT JOIN Users u ON me.user_id = u.user_id
+                    LEFT JOIN Vehicles v ON me.vin = v.vin
+                    WHERE me.user_id = ${userId} AND ${column} LIKE '%${value}%'
+                    ORDER BY me.rec_date DESC
+                `;
+            }
+    
+            const filteredEvents = await Database.select(query);
+    
+            // Create table rows asynchronously
+            const tableRows = [];
+            for (const event of filteredEvents) {
+                const row = await maintenanceManager.createMaintenanceRow(event);
+                tableRows.push(row);
+            }
+    
+            const table = `
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>User</th>
+                                <th>Vehicle</th>
+                                <th>Date</th>
+                                <th>Mileage</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${tableRows.join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+    
+            maintenanceManager.container.innerHTML = maintenanceManager.filterUI + table;
+        } catch (error) {
+            Utils.showAlert(`Error applying filter: ${error.message}`, 'danger');
+        }
+    },
+    
+    clearFilter: async () => {
+        document.getElementById('maintenance-filter-column').value = '';
+        document.getElementById('maintenance-filter-value').value = '';
+        await maintenanceManager.render();
     }
 };
 
