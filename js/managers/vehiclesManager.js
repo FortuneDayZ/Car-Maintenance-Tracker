@@ -1,6 +1,20 @@
 // Vehicles Manager
 const vehiclesManager = {
     container: null,
+    filterUI: `
+        <div class="mb-3 d-flex align-items-center gap-2">
+            <label for="filter-column">Filter by:</label>
+            <select id="filter-column" class="form-select form-select-sm" style="width: auto;">
+                <option value="">-- Select Column --</option>
+                <option value="make">Make</option>
+                <option value="model">Model</option>
+                <option value="year">Year</option>
+            </select>
+            <input type="text" id="filter-value" class="form-control form-control-sm" placeholder="Enter filter value" style="width: 200px;">
+            <button class="btn btn-sm btn-outline-primary" onclick="vehiclesManager.applyFilter()">Apply</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="vehiclesManager.clearFilter()">Clear</button>
+        </div>
+    `,
 
     init: () => {
         vehiclesManager.container = document.getElementById('vehicles-table-container');
@@ -59,7 +73,7 @@ const vehiclesManager = {
                 </div>
             `;
             
-            vehiclesManager.container.innerHTML = table;
+            vehiclesManager.container.innerHTML = vehiclesManager.filterUI + table;
         } catch (error) {
             console.error('Error loading vehicles:', error);
             vehiclesManager.container.innerHTML = `
@@ -414,7 +428,66 @@ const vehiclesManager = {
         } catch (error) {
             Utils.showAlert(`Error deleting vehicle: ${error.message}`, 'danger');
         }
+    },
+
+    applyFilter: async () => {
+        const column = document.getElementById('filter-column').value;
+        const value = document.getElementById('filter-value').value.trim();
+    
+        if (!column || !value) {
+            Utils.showAlert('Please select a column and enter a value.', 'warning');
+            return;
+        }
+    
+        try {
+            let query = `SELECT * FROM Vehicles WHERE ${column} LIKE '%${value}%'`;
+    
+            if (!AuthManager.isAdmin()) {
+                const userId = AuthManager.currentUser.user_id;
+                query = `
+                    SELECT DISTINCT v.* 
+                    FROM Vehicles v
+                    JOIN Owns o ON v.vin = o.vin
+                    WHERE o.user_id = ${userId}
+                    AND (o.end_date IS NULL OR o.end_date > CURDATE())
+                    AND v.${column} LIKE '%${value}%'
+                `;
+            }
+    
+            const filteredVehicles = await Database.select(query);
+    
+            const table = `
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>VIN</th>
+                                <th>Make</th>
+                                <th>Model</th>
+                                <th>Year</th>
+                                <th>Relationships</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${(await Promise.all(filteredVehicles.map(vehicle => vehiclesManager.createVehicleRow(vehicle)))).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+    
+            vehiclesManager.container.innerHTML = vehiclesManager.filterUI + table;
+        } catch (error) {
+            Utils.showAlert(`Error applying filter: ${error.message}`, 'danger');
+        }
+    },
+
+    clearFilter: async () => {
+        document.getElementById('filter-column').value = '';
+        document.getElementById('filter-value').value = '';
+        await vehiclesManager.render();
     }
+    
 };
 
 // Make vehiclesManager available globally
