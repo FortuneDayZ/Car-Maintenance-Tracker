@@ -2,6 +2,25 @@
 const servicesManager = {
     container: null,
 
+    filterUI: `
+        <div class="mb-3 d-flex align-items-center gap-2">
+            <label for="service-filter-column">Filter by:</label>
+            <select id="service-filter-column" class="form-select form-select-sm" style="width: auto;">
+                <option value="">-- Select Column --</option>
+                <option value="make">Vehicle Make</option>
+                <option value="model">Vehicle Model</option>
+                <option value="year">Vehicle Year</option>
+                <option value="service_date">Service Date</option>
+                <option value="current_mileage">Mileage</option>
+                <option value="cost">Cost</option>
+                <option value="description">Description</option>
+            </select>
+            <input type="text" id="service-filter-value" class="form-control form-control-sm" placeholder="Enter filter value" style="width: 200px;">
+            <button class="btn btn-sm btn-outline-primary" onclick="servicesManager.applyFilter()">Apply</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="servicesManager.clearFilter()">Clear</button>
+        </div>
+    `,
+
     init: () => {
         servicesManager.container = document.getElementById('services-table-container');
         servicesManager.render();
@@ -66,7 +85,7 @@ const servicesManager = {
                 </div>
             `;
             
-            servicesManager.container.innerHTML = table;
+            servicesManager.container.innerHTML = servicesManager.filterUI + table;
         } catch (error) {
             console.error('Error loading service records:', error);
             servicesManager.container.innerHTML = `
@@ -679,6 +698,80 @@ const servicesManager = {
             console.error('Error deleting service record:', error);
             Utils.showAlert(`Error deleting service record: ${error.message}`, 'danger');
         }
+    },
+
+    applyFilter: async () => {
+        const column = document.getElementById('service-filter-column').value;
+        const value = document.getElementById('service-filter-value').value.trim();
+    
+        if (!column || !value) {
+            Utils.showAlert('Please select a column and enter a value.', 'warning');
+            return;
+        }
+    
+        try {
+            let query;
+            if (AuthManager.isAdmin()) {
+                query = `
+                    SELECT sr.*, v.make, v.model, v.year 
+                    FROM ServiceRecords sr
+                    LEFT JOIN Vehicles v ON sr.vin = v.vin
+                    WHERE ${column} LIKE '%${value}%'
+                    ORDER BY sr.service_date DESC
+                `;
+            } else {
+                const userId = AuthManager.currentUser.user_id;
+                query = `
+                    SELECT sr.*, v.make, v.model, v.year 
+                    FROM ServiceRecords sr
+                    LEFT JOIN Vehicles v ON sr.vin = v.vin
+                    JOIN Owns o ON sr.vin = o.vin
+                    WHERE o.user_id = ${userId} AND ${column} LIKE '%${value}%'
+                    ORDER BY sr.service_date DESC
+                `;
+            }
+    
+            const filteredServices = await Database.select(query);
+    
+            // Create table rows asynchronously
+            const tableRows = [];
+            for (const service of filteredServices) {
+                const row = await servicesManager.createServiceRow(service);
+                tableRows.push(row);
+            }
+    
+            const table = `
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Vehicle</th>
+                                <th>Date</th>
+                                <th>Mileage</th>
+                                <th>Cost</th>
+                                <th>Description</th>
+                                <th>Relationships</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${tableRows.join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+    
+            servicesManager.container.innerHTML = servicesManager.filterUI + table;
+        } catch (error) {
+            Utils.showAlert(`Error applying filter: ${error.message}`, 'danger');
+        }
+    },
+    
+    clearFilter: async () => {
+        document.getElementById('service-filter-column').value = '';
+        document.getElementById('service-filter-value').value = '';
+        await servicesManager.render();
     }
 };
 
