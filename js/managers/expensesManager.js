@@ -2,6 +2,25 @@
 const expensesManager = {
     container: null,
 
+    filterUI: `
+        <div class="mb-3 d-flex align-items-center gap-2">
+            <label for="expense-filter-column">Filter by:</label>
+            <select id="expense-filter-column" class="form-select form-select-sm" style="width: auto;">
+                <option value="">-- Select Column --</option>
+                <option value="make">Vehicle Make</option>
+                <option value="model">Vehicle Model</option>
+                <option value="year">Vehicle Year</option>
+                <option value="date">Date</option>
+                <option value="category">Category</option>
+                <option value="amount">Amount</option>
+                <option value="description">Description</option>
+            </select>
+            <input type="text" id="expense-filter-value" class="form-control form-control-sm" placeholder="Enter filter value" style="width: 200px;">
+            <button class="btn btn-sm btn-outline-primary" onclick="expensesManager.applyFilter()">Apply</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="expensesManager.clearFilter()">Clear</button>
+        </div>
+    `,
+
     init: () => {
         expensesManager.container = document.getElementById('expenses-table-container');
         expensesManager.render();
@@ -134,7 +153,7 @@ const expensesManager = {
                 </div>
             `;
             
-            expensesManager.container.innerHTML = table;
+            expensesManager.container.innerHTML = expensesManager.filterUI + table;
         } catch (error) {
             console.error('Error loading expenses:', error);
             expensesManager.container.innerHTML = `
@@ -1096,6 +1115,145 @@ const expensesManager = {
             link.click();
             document.body.removeChild(link);
         }
+    },
+
+    applyFilter: async () => {
+        const column = document.getElementById('expense-filter-column').value;
+        const value = document.getElementById('expense-filter-value').value.trim();
+    
+        if (!column || !value) {
+            Utils.showAlert('Please select a column and enter a value.', 'warning');
+            return;
+        }
+    
+        try {
+            let query;
+            if (AuthManager.isAdmin()) {
+                query = `
+                    SELECT 
+                        e.*, 
+                        v.make, v.model, v.year,
+                        me.service_id,
+                        re.renewal_date, re.renewal_period, re.state,
+                        ie.policy_number, ie.start_date, ie.end_date, ie.provider_name,
+                        fe.gallons, fe.current_mileage, fe.fuel_type
+                    FROM Expenses e
+                    LEFT JOIN Vehicles v ON e.vin = v.vin
+                    LEFT JOIN MaintenanceExpenses me ON e.expense_id = me.expense_id
+                    LEFT JOIN RegistrationExpenses re ON e.expense_id = re.expense_id
+                    LEFT JOIN InsuranceExpenses ie ON e.expense_id = ie.expense_id
+                    LEFT JOIN FuelExpenses fe ON e.expense_id = fe.expense_id
+                    WHERE ${column} LIKE '%${value}%'
+                    ORDER BY e.date DESC
+                `;
+            } else {
+                const userId = AuthManager.currentUser.user_id;
+                query = `
+                    SELECT 
+                        e.*, 
+                        v.make, v.model, v.year,
+                        me.service_id,
+                        re.renewal_date, re.renewal_period, re.state,
+                        ie.policy_number, ie.start_date, ie.end_date, ie.provider_name,
+                        fe.gallons, fe.current_mileage, fe.fuel_type
+                    FROM Expenses e
+                    LEFT JOIN Vehicles v ON e.vin = v.vin
+                    LEFT JOIN MaintenanceExpenses me ON e.expense_id = me.expense_id
+                    LEFT JOIN RegistrationExpenses re ON e.expense_id = re.expense_id
+                    LEFT JOIN InsuranceExpenses ie ON e.expense_id = ie.expense_id
+                    LEFT JOIN FuelExpenses fe ON e.expense_id = fe.expense_id
+                    JOIN Owns o ON e.vin = o.vin
+                    WHERE o.user_id = ${userId} AND ${column} LIKE '%${value}%'
+                    ORDER BY e.date DESC
+                `;
+            }
+    
+            const filteredExpenses = await Database.select(query);
+    
+            // Get aggregate data for summary (filtered)
+            const summaryData = await expensesManager.getExpenseSummary(AuthManager.currentUser.user_id, AuthManager.isAdmin());
+            
+            const table = `
+                <!-- Expense Summary Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">Total Expenses</h5>
+                                <h3>${Utils.formatCurrency(summaryData.totalAmount)}</h3>
+                                <small>All time</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">Average Expense</h5>
+                                <h3>${Utils.formatCurrency(summaryData.averageAmount)}</h3>
+                                <small>Per expense</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">Total Count</h5>
+                                <h3>${summaryData.totalCount}</h3>
+                                <small>Expenses</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">This Month</h5>
+                                <h3>${Utils.formatCurrency(summaryData.thisMonthAmount)}</h3>
+                                <small>${summaryData.thisMonthCount} expenses</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Export Button -->
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <button class="btn btn-success" onclick="expensesManager.exportToCSV()">
+                            <i class="fas fa-download"></i> Export Expenses to CSV
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Vehicle</th>
+                                <th>Date</th>
+                                <th>Category</th>
+                                <th>Amount</th>
+                                <th>Description</th>
+                                <th>Details</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${filteredExpenses.map(expense => expensesManager.createExpenseRow(expense)).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+    
+            expensesManager.container.innerHTML = expensesManager.filterUI + table;
+        } catch (error) {
+            Utils.showAlert(`Error applying filter: ${error.message}`, 'danger');
+        }
+    },
+    
+    clearFilter: async () => {
+        document.getElementById('expense-filter-column').value = '';
+        document.getElementById('expense-filter-value').value = '';
+        await expensesManager.render();
     }
 };
 
