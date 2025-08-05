@@ -2,6 +2,23 @@
 const usersManager = {
     container: null,
 
+    filterUI: `
+        <div class="mb-3 d-flex align-items-center gap-2">
+            <label for="user-filter-column">Filter by:</label>
+            <select id="user-filter-column" class="form-select form-select-sm" style="width: auto;">
+                <option value="">-- Select Column --</option>
+                <option value="username">Username</option>
+                <option value="email">Email</option>
+                <option value="birthday">Birthday</option>
+                <option value="registration_date">Registration Date</option>
+            </select>
+            <input type="text" id="user-filter-value" class="form-control form-control-sm" placeholder="Enter filter value" style="width: 200px;">
+            <button class="btn btn-sm btn-outline-primary" onclick="usersManager.applyFilter()">Apply</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="usersManager.clearFilter()">Clear</button>
+        </div>
+    `,
+
+
     init: () => {
         usersManager.container = document.getElementById('users-table-container');
         usersManager.render();
@@ -66,7 +83,7 @@ const usersManager = {
                 </div>
             `;
             
-            usersManager.container.innerHTML = table;
+            usersManager.container.innerHTML = usersManager.filterUI + table;
         } catch (error) {
             console.error('Error loading users:', error);
             usersManager.container.innerHTML = `
@@ -499,7 +516,61 @@ const usersManager = {
             console.error('Error demoting user from admin:', error);
             Utils.showAlert(`Error demoting user: ${error.message}`, 'danger');
         }
+    },
+
+    applyFilter: async () => {
+        const column = document.getElementById('user-filter-column').value;
+        const value = document.getElementById('user-filter-value').value.trim();
+    
+        if (!column || !value) {
+            Utils.showAlert('Please select a column and enter a value.', 'warning');
+            return;
+        }
+    
+        try {
+            let query = `SELECT * FROM Users WHERE ${column} LIKE '%${value}%'`;
+    
+            if (!AuthManager.isAdmin()) {
+                const userId = AuthManager.currentUser.user_id;
+                query = `SELECT * FROM Users WHERE user_id = ${userId} AND ${column} LIKE '%${value}%'`;
+            }
+    
+            const filteredUsers = await Database.select(query);
+    
+            const table = `
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Birthday</th>
+                                <th>Registration Date</th>
+                                <th>Admin Status</th>
+                                <th>Relationships</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${(await Promise.all(filteredUsers.map(user => usersManager.createUserRow(user)))).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+    
+            usersManager.container.innerHTML = usersManager.filterUI + table;
+        } catch (error) {
+            Utils.showAlert(`Error applying filter: ${error.message}`, 'danger');
+        }
+    },
+    
+    clearFilter: async () => {
+        document.getElementById('user-filter-column').value = '';
+        document.getElementById('user-filter-value').value = '';
+        await usersManager.render();
     }
+    
 };
 
 // Make usersManager available globally
