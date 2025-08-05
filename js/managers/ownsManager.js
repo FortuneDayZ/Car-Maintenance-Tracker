@@ -2,6 +2,21 @@
 const ownsManager = {
     container: null,
 
+    filterUI: `
+        <div class="mb-3 d-flex align-items-center gap-2">
+            <label for="owns-filter-column">Filter by:</label>
+            <select id="owns-filter-column" class="form-select form-select-sm" style="width: auto;">
+                <option value="">-- Select Column --</option>
+                <option value="username">User</option>
+                <option value="vehicle">Vehicle</option>
+                <option value="vin">VIN</option>
+            </select>
+            <input type="text" id="owns-filter-value" class="form-control form-control-sm" placeholder="Enter filter value" style="width: 200px;">
+            <button class="btn btn-sm btn-outline-primary" onclick="ownsManager.applyFilter()">Apply</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="ownsManager.clearFilter()">Clear</button>
+        </div>
+    `,
+
     init: () => {
         ownsManager.container = document.getElementById('owns-table-container');
         ownsManager.render();
@@ -72,7 +87,7 @@ const ownsManager = {
                 </div>
             `;
             
-            ownsManager.container.innerHTML = table;
+            ownsManager.container.innerHTML = ownsManager.filterUI + table;
         } catch (error) {
             console.error('Error loading ownership data:', error);
             ownsManager.container.innerHTML = `
@@ -305,7 +320,80 @@ const ownsManager = {
             console.error('Error deleting ownership:', error);
             Utils.showAlert(`Error deleting ownership: ${error.message}`, 'danger');
         }
-    }
+    },
+
+    applyFilter: async () => {
+        const column = document.getElementById('owns-filter-column').value;
+        const value = document.getElementById('owns-filter-value').value.trim();
+    
+        if (!column || !value) {
+            Utils.showAlert('Please select a column and enter a value.', 'warning');
+            return;
+        }
+    
+        try {
+            let whereClause = '';
+            if (column.includes('date')) {
+                whereClause = `DATE(o.${column}) = '${value}'`;
+            } else if (['username', 'email'].includes(column)) {
+                whereClause = `u.${column} LIKE '%${value}%'`;
+            } else if (column === 'vehicle') {
+                whereClause = `(v.make LIKE '%${value}%' OR v.model LIKE '%${value}%' OR v.year LIKE '%${value}%')`;
+            } else {
+                whereClause = `o.${column} LIKE '%${value}%'`;
+            }
+    
+            if (!AuthManager.isAdmin()) {
+                whereClause = `o.user_id = ${AuthManager.currentUser.user_id} AND ${whereClause}`;
+            }
+    
+            const query = `
+                SELECT o.*, u.username, u.email, v.make, v.model, v.year 
+                FROM Owns o
+                LEFT JOIN Users u ON o.user_id = u.user_id
+                LEFT JOIN Vehicles v ON o.vin = v.vin
+                WHERE ${whereClause}
+                ORDER BY o.start_date DESC
+            `;
+    
+            const filteredData = await Database.select(query);
+    
+            const table = `
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>User</th>
+                                <th>Vehicle</th>
+                                <th>VIN</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${filteredData.length > 0 ? 
+                                filteredData.map(own => ownsManager.createOwnRow(own)).join('') : 
+                                '<tr><td colspan="7" class="text-center text-muted">No matching records</td></tr>'
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            `;
+    
+            ownsManager.container.innerHTML = ownsManager.filterUI + table;
+        } catch (error) {
+            Utils.showAlert(`Error applying filter: ${error.message}`, 'danger');
+        }
+    },
+
+    clearFilter: async () => {
+        document.getElementById('owns-filter-column').value = '';
+        document.getElementById('owns-filter-value').value = '';
+        await ownsManager.render();
+    }    
+    
 };
 
 // Make ownsManager available globally
