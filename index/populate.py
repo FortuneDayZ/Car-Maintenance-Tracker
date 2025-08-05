@@ -13,7 +13,7 @@ cursor = conn.cursor()
 def random_vin():
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=17))
 
-def insert_users(n=1000):
+def insert_users(n=5000):
     usernames = set()
     emails = set()
 
@@ -34,7 +34,7 @@ def insert_users(n=1000):
         ''', (username, password_hash, email, birthday, reg_date, is_admin))
     conn.commit()
 
-def insert_vehicles(n=1000):
+def insert_vehicles(n=5000):
     makes = ['Toyota', 'Ford', 'Chevy', 'BMW', 'Honda']
     models = ['Corolla', 'F-150', 'Civic', 'Accord', 'Mustang']
     vins = set()
@@ -75,7 +75,7 @@ def insert_owns():
         used.add((user_id, vin))
     conn.commit()
 
-def insert_car_shops(n=1000):
+def insert_car_shops(n=5000):
     cursor.execute('SELECT user_id FROM Users')
     users = [row[0] for row in cursor.fetchall()]
     for _ in range(n):
@@ -92,7 +92,7 @@ def insert_car_shops(n=1000):
         ''', (uid, name, street, city, state, zip_code, phone))
     conn.commit()
 
-def insert_mechanics(n=1000):
+def insert_mechanics(n=5000):
     cursor.execute('SELECT user_id FROM Users')
     users = [row[0] for row in cursor.fetchall()]
     cursor.execute('SELECT car_shop_id FROM CarShops')
@@ -109,7 +109,7 @@ def insert_mechanics(n=1000):
         ''', (uid, sid, name, phone, email))
     conn.commit()
 
-def insert_service_records(n=1000):
+def insert_service_records(n=5000):
     cursor.execute('SELECT vin FROM Vehicles')
     vins = [row[0] for row in cursor.fetchall()]
     for _ in range(n):
@@ -155,7 +155,7 @@ def insert_service_records_service_types():
         ''', (sid, st))
     conn.commit()
 
-def insert_parts(n=1000):
+def insert_parts(n=5000):
     cursor.execute('SELECT user_id FROM Users')
     uids = [row[0] for row in cursor.fetchall()]
     for _ in range(n):
@@ -184,7 +184,7 @@ def insert_service_records_parts():
         ''', (sid, pid))
     conn.commit()
 
-def insert_expenses(n=1000):
+def insert_expenses(n=5000):
     cursor.execute('SELECT vin FROM Vehicles')
     vins = [row[0] for row in cursor.fetchall()]
     cats = ['Maintenance', 'Fuel', 'Registration', 'Insurance', 'Misc']
@@ -226,7 +226,7 @@ def insert_sub_expenses():
             ''', (eid, round(random.uniform(5.0, 15.0), 2), random.randint(10000, 150000), random.choice(['Regular', 'Premium', 'Diesel'])))
     conn.commit()
 
-def insert_upcoming_services(n=1000):
+def insert_upcoming_services(n=5000):
     cursor.execute('SELECT user_id FROM Users')
     uids = [row[0] for row in cursor.fetchall()]
     cursor.execute('SELECT vin FROM Vehicles')
@@ -256,7 +256,7 @@ def insert_upcoming_services_service_types():
         ''', (eid, st))
     conn.commit()
 
-def insert_reminders(n=1000):
+def insert_reminders(n=5000):
     cursor.execute('SELECT event_id FROM UpcomingServices')
     eids = random.sample([row[0] for row in cursor.fetchall()], n)
     for eid in eids:
