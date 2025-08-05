@@ -2,6 +2,23 @@
 const partsManager = {
     container: null,
 
+    filterUI: `
+        <div class="mb-3 d-flex align-items-center gap-2">
+            <label for="part-filter-column">Filter by:</label>
+            <select id="part-filter-column" class="form-select form-select-sm" style="width: auto;">
+                <option value="">-- Select Column --</option>
+                <option value="name">Name</option>
+                <option value="manufacturer">Manufacturer</option>
+                <option value="part_number">Part Number</option>
+                <option value="unit_price">Unit Price</option>
+                ${AuthManager.isAdmin() ? '<option value="user_id">User ID</option>' : ''}
+            </select>
+            <input type="text" id="part-filter-value" class="form-control form-control-sm" placeholder="Enter filter value" style="width: 200px;">
+            <button class="btn btn-sm btn-outline-primary" onclick="partsManager.applyFilter()">Apply</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="partsManager.clearFilter()">Clear</button>
+        </div>
+    `,
+
     init: () => {
         partsManager.container = document.getElementById('parts-table-container');
         partsManager.render();
@@ -72,7 +89,7 @@ const partsManager = {
                 </div>
             `;
             
-            partsManager.container.innerHTML = table;
+            partsManager.container.innerHTML = partsManager.filterUI + table;
         } catch (error) {
             console.error('Error loading parts:', error);
             partsManager.container.innerHTML = `
@@ -398,6 +415,60 @@ const partsManager = {
             console.error('Error deleting part:', error);
             Utils.showAlert(`Error deleting part: ${error.message}`, 'danger');
         }
+    },
+
+    applyFilter: async () => {
+        const column = document.getElementById('part-filter-column').value;
+        const value = document.getElementById('part-filter-value').value.trim();
+    
+        if (!column || !value) {
+            Utils.showAlert('Please select a column and enter a value.', 'warning');
+            return;
+        }
+    
+        try {
+            let query;
+            if (AuthManager.isAdmin()) {
+                query = `SELECT * FROM Parts WHERE ${column} LIKE '%${value}%' ORDER BY name`;
+            } else {
+                const userId = AuthManager.currentUser.user_id;
+                query = `SELECT * FROM Parts p WHERE p.user_id = ${userId} AND ${column} LIKE '%${value}%' ORDER BY p.name`;
+            }
+    
+            const filteredParts = await Database.select(query);
+    
+            const table = `
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name <small class="text-muted">(✓ = Used by you)</small></th>
+                                <th>Manufacturer</th>
+                                <th>Part Number</th>
+                                <th>Unit Price</th>
+                                ${AuthManager.isAdmin() ? '<th>User ID</th>' : ''}
+                                <th>Services Used</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${(await Promise.all(filteredParts.map(part => partsManager.createPartRow(part)))).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+    
+            partsManager.container.innerHTML = partsManager.filterUI + table;
+        } catch (error) {
+            Utils.showAlert(`Error applying filter: ${error.message}`, 'danger');
+        }
+    },
+    
+    clearFilter: async () => {
+        document.getElementById('part-filter-column').value = '';
+        document.getElementById('part-filter-value').value = '';
+        await partsManager.render();
     }
 };
 
