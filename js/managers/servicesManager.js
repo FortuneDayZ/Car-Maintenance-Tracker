@@ -427,7 +427,7 @@ const servicesManager = {
         
         const serviceData = {
             vin: formData.get('vin'),
-            service_date: formData.get('service_date'),
+            service_date: formData.get('service_date').split('T')[0], // Extract just the date part (YYYY-MM-DD)
             current_mileage: parseInt(formData.get('current_mileage')),
             cost: parseFloat(formData.get('cost')),
             description: formData.get('description')

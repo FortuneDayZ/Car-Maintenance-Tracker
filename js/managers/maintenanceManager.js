@@ -569,7 +569,7 @@ const maintenanceManager = {
         const maintenanceData = {
             user_id: parseInt(formData.get('user_id')),
             vin: formData.get('vin'),
-            rec_date: formData.get('rec_date'),
+                            rec_date: formData.get('rec_date').split('T')[0], // Extract just the date part
             rec_mileage: parseInt(formData.get('rec_mileage')),
             status: formData.get('status')
         };
@@ -788,7 +788,7 @@ const maintenanceManager = {
         const reminderData = {
             event_id: eventId,
             message: formData.get('message'),
-            send_date: formData.get('send_date'),
+                            send_date: formData.get('send_date').split('T')[0], // Extract just the date part
             was_sent: formData.get('was_sent') === 'on' ? 1 : 0,
             was_read: formData.get('was_read') === 'on' ? 1 : 0
         };

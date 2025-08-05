@@ -175,8 +175,8 @@ const ownsManager = {
         const ownershipData = {
             user_id: parseInt(formData.get('user_id')),
             vin: formData.get('vin'),
-            start_date: formData.get('start_date'),
-            end_date: formData.get('end_date') || null
+            start_date: formData.get('start_date').split('T')[0], // Extract just the date part
+            end_date: formData.get('end_date') ? formData.get('end_date').split('T')[0] : null // Extract just the date part
         };
 
         // Validation

@@ -103,7 +103,17 @@ const Database = {
             if (value === null || value === undefined) {
                 return 'NULL';
             } else if (typeof value === 'string') {
-                return `'${value.replace(/'/g, "''")}'`; // Escape single quotes
+                // Handle date strings - if it looks like a date, format it properly
+                if (value.includes('T') && value.includes('Z')) {
+                    // It's an ISO datetime string, extract just the date part
+                    const dateOnly = value.split('T')[0];
+                    return `'${dateOnly}'`;
+                } else if (value.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                    // It's already in YYYY-MM-DD format
+                    return `'${value}'`;
+                } else {
+                    return `'${value.replace(/'/g, "''")}'`; // Escape single quotes
+                }
             } else {
                 return value;
             }
@@ -120,7 +130,17 @@ const Database = {
             if (value === null || value === undefined) {
                 return `${key} = NULL`;
             } else if (typeof value === 'string') {
-                return `${key} = '${value.replace(/'/g, "''")}'`; // Escape single quotes
+                // Handle date strings - if it looks like a date, format it properly
+                if (value.includes('T') && value.includes('Z')) {
+                    // It's an ISO datetime string, extract just the date part
+                    const dateOnly = value.split('T')[0];
+                    return `${key} = '${dateOnly}'`;
+                } else if (value.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                    // It's already in YYYY-MM-DD format
+                    return `${key} = '${value}'`;
+                } else {
+                    return `${key} = '${value.replace(/'/g, "''")}'`; // Escape single quotes
+                }
             } else {
                 return `${key} = ${value}`;
             }

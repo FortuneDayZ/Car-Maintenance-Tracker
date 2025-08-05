@@ -231,7 +231,7 @@ const expensesManager = {
                     ${Utils.createFormField('Date', 'date', 'date', true).outerHTML}
                     ${Utils.createFormField('Category', 'category', 'select', true, categoryOptions).outerHTML}
                     ${Utils.createFormField('Amount', 'amount', 'number', true).outerHTML}
-                    ${Utils.createFormField('Description', 'description', 'textarea', true).outerHTML}
+                    ${Utils.createFormField('Description', 'description', 'textarea', false).outerHTML}
                     
                     <!-- Dynamic fields container -->
                     <div id="dynamicFields"></div>
@@ -270,7 +270,7 @@ const expensesManager = {
             }));
             
             container.innerHTML = `
-                ${Utils.createFormField('Service Record', 'service_id', 'select', false, serviceOptions).outerHTML}
+                ${Utils.createFormField('Service Record', 'service_id', 'select', true, serviceOptions).outerHTML}
             `;
             
             // Populate with existing data if available
@@ -283,7 +283,7 @@ const expensesManager = {
         } catch (error) {
             console.error('Error loading service options:', error);
             container.innerHTML = `
-                ${Utils.createFormField('Service ID', 'service_id', 'number', false).outerHTML}
+                ${Utils.createFormField('Service ID', 'service_id', 'number', true).outerHTML}
             `;
             
             // Populate with existing data if available
@@ -322,7 +322,7 @@ const expensesManager = {
                     expensesManager.loadServiceOptions(vin, dynamicFieldsContainer, existingData);
                 } else {
                     dynamicFieldsContainer.innerHTML = `
-                        ${Utils.createFormField('Service ID', 'service_id', 'number', false).outerHTML}
+                        ${Utils.createFormField('Service ID', 'service_id', 'number', true).outerHTML}
                     `;
                     // Populate with existing data if available
                     if (existingData && existingData.service_id) {
@@ -336,8 +336,8 @@ const expensesManager = {
             case 'Registration':
                 dynamicFieldsContainer.innerHTML = `
                     ${Utils.createFormField('Renewal Date', 'renewal_date', 'date', true).outerHTML}
-                    ${Utils.createFormField('Renewal Period', 'renewal_period', 'text', true).outerHTML}
-                    ${Utils.createFormField('State', 'state', 'text', true).outerHTML}
+                    ${Utils.createFormField('Renewal Period', 'renewal_period', 'text', false).outerHTML}
+                    ${Utils.createFormField('State', 'state', 'text', false).outerHTML}
                 `;
                 // Populate with existing data if available
                 if (existingData) {
@@ -362,7 +362,7 @@ const expensesManager = {
                     ${Utils.createFormField('Policy Number', 'policy_number', 'text', true).outerHTML}
                     ${Utils.createFormField('Start Date', 'start_date', 'date', true).outerHTML}
                     ${Utils.createFormField('End Date', 'end_date', 'date', true).outerHTML}
-                    ${Utils.createFormField('Provider Name', 'provider_name', 'text', true).outerHTML}
+                    ${Utils.createFormField('Provider Name', 'provider_name', 'text', false).outerHTML}
                 `;
                 // Populate with existing data if available
                 if (existingData) {
@@ -390,7 +390,7 @@ const expensesManager = {
                 dynamicFieldsContainer.innerHTML = `
                     ${Utils.createFormField('Gallons', 'gallons', 'number', true).outerHTML}
                     ${Utils.createFormField('Current Mileage', 'current_mileage', 'number', true).outerHTML}
-                    ${Utils.createFormField('Fuel Type', 'fuel_type', 'text', true).outerHTML}
+                    ${Utils.createFormField('Fuel Type', 'fuel_type', 'text', false).outerHTML}
                 `;
                 // Populate with existing data if available
                 if (existingData) {
@@ -460,7 +460,7 @@ const expensesManager = {
                     ${Utils.createFormField('Date', 'date', 'date', true).outerHTML}
                     ${Utils.createFormField('Category', 'category', 'select', true, categoryOptions).outerHTML}
                     ${Utils.createFormField('Amount', 'amount', 'number', true).outerHTML}
-                    ${Utils.createFormField('Description', 'description', 'textarea', true).outerHTML}
+                    ${Utils.createFormField('Description', 'description', 'textarea', false).outerHTML}
                     
                     <!-- Dynamic fields container -->
                     <div id="dynamicFields"></div>
@@ -527,7 +527,7 @@ const expensesManager = {
         
         const expenseData = {
             vin: formData.get('vin'),
-            date: formData.get('date'),
+            date: formData.get('date').split('T')[0], // Extract just the date part (YYYY-MM-DD)
             category: formData.get('category'),
             amount: parseFloat(formData.get('amount')),
             description: formData.get('description')
@@ -553,15 +553,62 @@ const expensesManager = {
             Utils.showAlert('Amount must be a valid number', 'danger');
             return;
         }
-        
-        if (!expenseData.description || expenseData.description.trim() === '') {
-            Utils.showAlert('Description is required', 'danger');
-            return;
-        }
 
         if (expenseData.amount < 0) {
             Utils.showAlert('Amount must be a positive number', 'danger');
             return;
+        }
+
+        // Category-specific validation based on database schema
+        switch (expenseData.category) {
+            case 'Maintenance':
+                const serviceId = formData.get('service_id');
+                if (!serviceId || serviceId.trim() === '') {
+                    Utils.showAlert('Service ID is required for maintenance expenses', 'danger');
+                    return;
+                }
+                break;
+            case 'Registration':
+                const renewalDate = formData.get('renewal_date');
+                if (!renewalDate || renewalDate.trim() === '') {
+                    Utils.showAlert('Renewal Date is required for registration expenses', 'danger');
+                    return;
+                }
+                break;
+            case 'Insurance':
+                const policyNumber = formData.get('policy_number');
+                const startDate = formData.get('start_date');
+                const endDate = formData.get('end_date');
+                
+                if (!policyNumber || policyNumber.trim() === '') {
+                    Utils.showAlert('Policy Number is required for insurance expenses', 'danger');
+                    return;
+                }
+                if (!startDate || startDate.trim() === '') {
+                    Utils.showAlert('Start Date is required for insurance expenses', 'danger');
+                    return;
+                }
+                if (!endDate || endDate.trim() === '') {
+                    Utils.showAlert('End Date is required for insurance expenses', 'danger');
+                    return;
+                }
+                break;
+            case 'Fuel':
+                const gallons = formData.get('gallons');
+                const currentMileage = formData.get('current_mileage');
+                
+                if (!gallons || isNaN(parseFloat(gallons))) {
+                    Utils.showAlert('Gallons is required and must be a valid number for fuel expenses', 'danger');
+                    return;
+                }
+                if (!currentMileage || isNaN(parseInt(currentMileage))) {
+                    Utils.showAlert('Current Mileage is required and must be a valid number for fuel expenses', 'danger');
+                    return;
+                }
+                break;
+            case 'Misc':
+                // No additional validation required for miscellaneous expenses
+                break;
         }
 
         try {
@@ -612,28 +659,41 @@ const expensesManager = {
                     }
                     break;
                 case 'Registration':
+                    const renewalDate = formData.get('renewal_date');
+                    const renewalPeriod = formData.get('renewal_period');
+                    const state = formData.get('state');
+                    
                     await Database.insertRecord('RegistrationExpenses', {
                         expense_id: expenseId,
-                        renewal_date: formData.get('renewal_date'),
-                        renewal_period: formData.get('renewal_period'),
-                        state: formData.get('state')
+                        renewal_date: renewalDate.split('T')[0], // Extract just the date part
+                        renewal_period: renewalPeriod || null,
+                        state: state || null
                     });
                     break;
                 case 'Insurance':
+                    const policyNumber = formData.get('policy_number');
+                    const startDate = formData.get('start_date');
+                    const endDate = formData.get('end_date');
+                    const providerName = formData.get('provider_name');
+                    
                     await Database.insertRecord('InsuranceExpenses', {
                         expense_id: expenseId,
-                        policy_number: formData.get('policy_number'),
-                        start_date: formData.get('start_date'),
-                        end_date: formData.get('end_date'),
-                        provider_name: formData.get('provider_name')
+                        policy_number: policyNumber,
+                        start_date: startDate.split('T')[0], // Extract just the date part
+                        end_date: endDate.split('T')[0], // Extract just the date part
+                        provider_name: providerName || null
                     });
                     break;
                 case 'Fuel':
+                    const gallons = formData.get('gallons');
+                    const currentMileage = formData.get('current_mileage');
+                    const fuelType = formData.get('fuel_type');
+                    
                     await Database.insertRecord('FuelExpenses', {
                         expense_id: expenseId,
-                        gallons: parseFloat(formData.get('gallons')),
-                        current_mileage: parseInt(formData.get('current_mileage')),
-                        fuel_type: formData.get('fuel_type')
+                        gallons: parseFloat(gallons),
+                        current_mileage: parseInt(currentMileage),
+                        fuel_type: fuelType || null
                     });
                     break;
                 case 'Misc':
