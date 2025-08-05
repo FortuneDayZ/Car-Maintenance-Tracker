@@ -2,6 +2,25 @@
 const mechanicsManager = {
     container: null,
 
+    filterUI: () => {
+        return `
+            <div class="mb-3 d-flex align-items-center gap-2">
+                <label for="mechanics-filter-column">Filter by:</label>
+                <select id="mechanics-filter-column" class="form-select form-select-sm" style="width: auto;">
+                    <option value="">-- Select Column --</option>
+                    <option value="name">Name</option>
+                    <option value="email">Email</option>
+                    <option value="phone_number">Phone</option>
+                    <option value="shop_name">Car Shop</option>
+                    ${AuthManager.isAdmin() ? '<option value="user_id">User ID</option>' : ''}
+                </select>
+                <input type="text" id="mechanics-filter-value" class="form-control form-control-sm" placeholder="Enter filter value" style="width: 200px;">
+                <button class="btn btn-sm btn-outline-primary" onclick="mechanicsManager.applyFilter()">Apply</button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="mechanicsManager.clearFilter()">Clear</button>
+            </div>
+        `;
+    },
+
     init: () => {
         mechanicsManager.container = document.getElementById('mechanics-table-container');
         mechanicsManager.render();
@@ -57,7 +76,7 @@ const mechanicsManager = {
                 </div>
             `;
             
-            mechanicsManager.container.innerHTML = table;
+            mechanicsManager.container.innerHTML = mechanicsManager.filterUI() + table;
         } catch (error) {
             console.error('Error loading mechanics:', error);
             mechanicsManager.container.innerHTML = `
@@ -404,7 +423,75 @@ const mechanicsManager = {
         } catch (error) {
             Utils.showAlert(`Error deleting mechanic: ${error.message}`, 'danger');
         }
+    },
+
+    applyFilter: async () => {
+        const column = document.getElementById('mechanics-filter-column').value;
+        const value = document.getElementById('mechanics-filter-value').value.trim();
+    
+        if (!column || !value) {
+            Utils.showAlert('Please select a column and enter a value.', 'warning');
+            return;
+        }
+    
+        try {
+            let whereClause = '';
+            if (column === 'shop_name') {
+                whereClause = `cs.name LIKE '%${value}%'`;
+            } else if (['name', 'email', 'phone_number'].includes(column)) {
+                whereClause = `m.${column} LIKE '%${value}%'`;
+            } else if (column === 'user_id') {
+                whereClause = `m.user_id = ${parseInt(value)}`;
+            }
+    
+            if (!AuthManager.isAdmin()) {
+                const userId = AuthManager.currentUser.user_id;
+                whereClause = `(m.user_id = ${userId}) AND ${whereClause}`;
+            }
+    
+            const query = `
+                SELECT m.*, cs.name as shop_name 
+                FROM Mechanics m 
+                LEFT JOIN CarShops cs ON m.car_shop_id = cs.car_shop_id
+                WHERE ${whereClause}
+            `;
+    
+            const filteredMechanics = await Database.select(query);
+    
+            const table = `
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Car Shop</th>
+                                ${AuthManager.isAdmin() ? '<th>User ID</th>' : ''}
+                                <th>Services</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${(await Promise.all(filteredMechanics.map(mechanicsManager.createMechanicRow))).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+    
+            mechanicsManager.container.innerHTML = mechanicsManager.filterUI() + table;
+        } catch (error) {
+            Utils.showAlert(`Error applying filter: ${error.message}`, 'danger');
+        }
+    },
+    
+    clearFilter: async () => {
+        document.getElementById('mechanics-filter-column').value = '';
+        document.getElementById('mechanics-filter-value').value = '';
+        await mechanicsManager.render();
     }
+    
 };
 
 // Make mechanicsManager available globally
