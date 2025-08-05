@@ -273,7 +273,20 @@ const servicesManager = {
                 text: `${vehicle.year} ${vehicle.make} ${vehicle.model} (${vehicle.vin})`
             }));
 
-            const mechanics = await Database.select('SELECT mechanic_id, name, email FROM Mechanics');
+            // Get mechanics based on user permissions
+            let mechanics;
+            if (AuthManager.isAdmin()) {
+                // Admins can see all mechanics
+                mechanics = await Database.select('SELECT mechanic_id, name, email FROM Mechanics');
+            } else {
+                // Regular users can only see mechanics associated with their account
+                const userId = AuthManager.currentUser.user_id;
+                mechanics = await Database.select(`
+                    SELECT mechanic_id, name, email 
+                    FROM Mechanics 
+                    WHERE user_id = ${userId}
+                `);
+            }
             const mechanicOptions = mechanics.map(mechanic => ({
                 value: mechanic.mechanic_id,
                 text: `${mechanic.name} (${mechanic.email})`
@@ -285,7 +298,20 @@ const servicesManager = {
                 text: type.service_type
             }));
 
-            const parts = await Database.select('SELECT part_id, name, manufacturer, unit_price FROM Parts');
+            // Get parts based on user permissions
+            let parts;
+            if (AuthManager.isAdmin()) {
+                // Admins can see all parts
+                parts = await Database.select('SELECT part_id, name, manufacturer, unit_price FROM Parts');
+            } else {
+                // Regular users can only see parts associated with their account
+                const userId = AuthManager.currentUser.user_id;
+                parts = await Database.select(`
+                    SELECT part_id, name, manufacturer, unit_price 
+                    FROM Parts 
+                    WHERE user_id = ${userId}
+                `);
+            }
             const partOptions = parts.map(part => ({
                 value: part.part_id,
                 text: `${part.name} - ${part.manufacturer} (${Utils.formatCurrency(part.unit_price)})`
@@ -364,8 +390,20 @@ const servicesManager = {
                 console.error('Error fetching current service types:', error);
             }
 
-            // Get parts for the form
-            const parts = await Database.select('SELECT part_id, name, manufacturer, unit_price FROM Parts');
+            // Get parts for the form based on user permissions
+            let parts;
+            if (AuthManager.isAdmin()) {
+                // Admins can see all parts
+                parts = await Database.select('SELECT part_id, name, manufacturer, unit_price FROM Parts');
+            } else {
+                // Regular users can only see parts associated with their account
+                const userId = AuthManager.currentUser.user_id;
+                parts = await Database.select(`
+                    SELECT part_id, name, manufacturer, unit_price 
+                    FROM Parts 
+                    WHERE user_id = ${userId}
+                `);
+            }
             const partOptions = parts.map(part => ({
                 value: part.part_id,
                 text: `${part.name} - ${part.manufacturer} (${Utils.formatCurrency(part.unit_price)})`
@@ -384,8 +422,20 @@ const servicesManager = {
                 console.error('Error fetching current parts:', error);
             }
 
-            // Get mechanics for the form
-            const mechanics = await Database.select('SELECT mechanic_id, name, email FROM Mechanics');
+            // Get mechanics for the form based on user permissions
+            let mechanics;
+            if (AuthManager.isAdmin()) {
+                // Admins can see all mechanics
+                mechanics = await Database.select('SELECT mechanic_id, name, email FROM Mechanics');
+            } else {
+                // Regular users can only see mechanics associated with their account
+                const userId = AuthManager.currentUser.user_id;
+                mechanics = await Database.select(`
+                    SELECT mechanic_id, name, email 
+                    FROM Mechanics 
+                    WHERE user_id = ${userId}
+                `);
+            }
             const mechanicOptions = mechanics.map(mechanic => ({
                 value: mechanic.mechanic_id,
                 text: `${mechanic.name} (${mechanic.email})`
