@@ -1,0 +1,398 @@
+// Test Manager - Demonstrates database connection with raw SQL
+const testManager = {
+    container: null,
+
+    init: () => {
+        testManager.container = document.getElementById('test-table-container');
+        testManager.render();
+    },
+
+    render: async () => {
+        try {
+            // Test database connection
+            const isConnected = await Database.testConnection();
+            
+            if (!isConnected) {
+                testManager.container.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h4><i class="fas fa-exclamation-triangle"></i> Database Connection Failed</h4>
+                        <p>Unable to connect to the database. Please check:</p>
+                        <ul>
+                            <li>MySQL server is running</li>
+                            <li>Database credentials are correct</li>
+                            <li>Database 'Final' exists</li>
+                            <li>Backend server is running on port 3000</li>
+                        </ul>
+                        <button class="btn btn-primary" onclick="testManager.testConnection()">
+                            <i class="fas fa-sync"></i> Test Connection
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            // Get all users from database
+            const users = await Database.select('SELECT * FROM Users LIMIT 10');
+            
+            const table = `
+                <div class="alert alert-success">
+                    <h4><i class="fas fa-check-circle"></i> Database Connected Successfully!</h4>
+                    <p>Found ${users.length} users in the database.</p>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Birthday</th>
+                                <th>Registration Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${users.map(user => `
+                                <tr>
+                                    <td>${user.user_id}</td>
+                                    <td>${user.username}</td>
+                                    <td>${user.email}</td>
+                                    <td>${Utils.formatDate(user.birthday)}</td>
+                                    <td>${Utils.formatDate(user.registration_date)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-3">
+                    <button class="btn btn-primary" onclick="testManager.runCustomQuery()">
+                        <i class="fas fa-database"></i> Run Custom Query
+                    </button>
+                    <button class="btn btn-danger" onclick="testManager.showDropTablesConfirmation()">
+                        <i class="fas fa-trash"></i> Drop All Tables
+                    </button>
+                    <button class="btn btn-warning" onclick="testManager.restoreAdmin()">
+                        <i class="fas fa-user-shield"></i> Restore Admin
+                    </button>
+                </div>
+            `;
+            
+            testManager.container.innerHTML = table;
+        } catch (error) {
+            testManager.container.innerHTML = `
+                <div class="alert alert-danger">
+                    <h4><i class="fas fa-exclamation-triangle"></i> Error Loading Data</h4>
+                    <p>${error.message}</p>
+                </div>
+            `;
+        }
+    },
+
+    testConnection: async () => {
+        try {
+            const isConnected = await Database.testConnection();
+            if (isConnected) {
+                Utils.showAlert('Database connection successful!', 'success');
+                testManager.render();
+            } else {
+                Utils.showAlert('Database connection failed!', 'danger');
+            }
+        } catch (error) {
+            Utils.showAlert(`Connection test failed: ${error.message}`, 'danger');
+        }
+    },
+
+    runCustomQuery: async () => {
+        const query = prompt('Enter your SQL query:');
+        if (!query) return;
+
+        try {
+            const results = await Database.executeQuery(query);
+            alert(`Query executed successfully!\nRows returned: ${results.length}\n\nResults:\n${JSON.stringify(results, null, 2)}`);
+        } catch (error) {
+            alert(`Query failed: ${error.message}`);
+        }
+    },
+
+
+    showDropTablesConfirmation: () => {
+        const modalBody = `
+            <div class="alert alert-danger">
+                <h5><i class="fas fa-exclamation-triangle"></i> WARNING: This action cannot be undone!</h5>
+                <p><strong>You are about to drop ALL tables from the database.</strong></p>
+                <p>This will permanently delete:</p>
+                <ul>
+                    <li>All user data (except admin accounts)</li>
+                    <li>All vehicle information</li>
+                    <li>All service records</li>
+                    <li>All maintenance events</li>
+                    <li>All expenses and fuel logs</li>
+                    <li>All parts and mechanics data</li>
+                    <li>All shop information</li>
+                </ul>
+                <p><strong>Admin login/password information will be preserved.</strong></p>
+                <hr>
+                <p>To confirm, type <code>DROP ALL TABLES</code> in the field below:</p>
+                <input type="text" class="form-control" id="dropConfirmation" placeholder="Type: DROP ALL TABLES">
+            </div>
+        `;
+
+        Utils.showModal('Drop All Tables - Confirmation Required', modalBody, async () => {
+            const confirmation = document.getElementById('dropConfirmation').value;
+            
+            if (confirmation !== 'DROP ALL TABLES') {
+                Utils.showAlert('Confirmation text does not match. Action cancelled.', 'warning');
+                return;
+            }
+
+            try {
+                await testManager.dropAllTables();
+                Utils.showAlert('All tables dropped successfully!', 'success');
+                testManager.render(); // Refresh the display
+            } catch (error) {
+                Utils.showAlert(`Error dropping tables: ${error.message}`, 'danger');
+            }
+        }, 'Drop Tables', 'Cancel');
+    },
+
+    dropAllTables: async () => {
+        // List of tables to drop (excluding any admin-related tables)
+        const tablesToDrop = [
+            'Reminder',
+            'UpcomingServices_ServiceTypes',
+'UpcomingServices',
+            
+            'Expenses',
+            'ServiceRecords_Parts',
+            'ServiceRecords_ServiceTypes',
+            'Parts',
+            'ServiceTypes',
+            'WorkedOn',
+            'ServiceRecords',
+            'Mechanics',
+            'CarShops',
+            'Owns',
+            'Vehicles',
+            'Users'
+        ];
+
+        // Drop tables in reverse dependency order to avoid foreign key constraint issues
+        for (const table of tablesToDrop) {
+            try {
+                await Database.executeQuery(`DROP TABLE IF EXISTS \`${table}\``);
+                console.log(`Dropped table: ${table}`);
+            } catch (error) {
+                console.error(`Error dropping table ${table}:`, error);
+                throw new Error(`Failed to drop table ${table}: ${error.message}`);
+            }
+        }
+
+        // Recreate the database structure
+        await testManager.recreateDatabaseStructure();
+    },
+
+    recreateDatabaseStructure: async () => {
+        try {
+            // Recreate all tables with their original structure
+            const createTableQueries = [
+                `CREATE TABLE Users (
+                    user_id INT AUTO_INCREMENT PRIMARY KEY,
+                    username VARCHAR(50) NOT NULL UNIQUE,
+                    password_hash CHAR(60) NOT NULL,
+                    email VARCHAR(100) NOT NULL UNIQUE,
+                    birthday DATE NOT NULL,
+                    registration_date DATE NOT NULL
+                )`,
+                `CREATE TABLE Vehicles (
+                    vin VARCHAR(17) PRIMARY KEY,
+                    make VARCHAR(50) NOT NULL, 
+                    model VARCHAR(50) NOT NULL, 
+                    year INT NOT NULL 
+                )`,
+                `CREATE TABLE Owns (
+                    user_id INT,
+                    vin VARCHAR(17),
+                    start_date DATE NOT NULL,
+                    end_date DATE,
+                    PRIMARY KEY (user_id, vin),
+                    FOREIGN KEY (user_id) REFERENCES Users(user_id)
+                        ON UPDATE CASCADE ON DELETE CASCADE,
+                    FOREIGN KEY (vin) REFERENCES Vehicles(vin)
+                        ON UPDATE CASCADE ON DELETE CASCADE
+                )`,
+                `CREATE TABLE CarShops (
+                    car_shop_id INT AUTO_INCREMENT PRIMARY KEY,
+                    name VARCHAR(100) NOT NULL,
+                    street VARCHAR(100),
+                    city VARCHAR(50),
+                    state VARCHAR(50),
+                    zip_code VARCHAR(15),
+                    phone_number VARCHAR(20)
+                )`,
+                `CREATE TABLE Mechanics (
+                    mechanic_id INT AUTO_INCREMENT PRIMARY KEY,
+                    car_shop_id INT,
+                    name VARCHAR(100) NOT NULL,
+                    phone_number VARCHAR(20),
+                    email VARCHAR(100),
+                    FOREIGN KEY (car_shop_id) REFERENCES CarShops(car_shop_id) 
+                        ON UPDATE CASCADE ON DELETE SET NULL
+                )`,
+                `CREATE TABLE ServiceRecords (
+                    service_id INT AUTO_INCREMENT PRIMARY KEY,
+                    vin VARCHAR(17) NOT NULL,
+                    service_date DATE NOT NULL,
+                    current_mileage INT NOT NULL,
+                    cost DECIMAL(10, 2) NOT NULL,
+                    description TEXT,
+                    FOREIGN KEY (vin) REFERENCES vehicles(vin) 
+                        ON UPDATE CASCADE ON DELETE CASCADE
+                )`,
+                `CREATE TABLE WorkedOn (
+                    mechanic_id INT,
+                    service_id INT,
+                    PRIMARY KEY (mechanic_id, service_id),
+                    FOREIGN KEY (mechanic_id) REFERENCES Mechanics(mechanic_id) 
+                        ON UPDATE CASCADE ON DELETE CASCADE,
+                    FOREIGN KEY (service_id) REFERENCES ServiceRecords(service_id) 
+                    ON UPDATE CASCADE ON DELETE CASCADE
+                )`,
+                `CREATE TABLE ServiceTypes (
+                    service_type VARCHAR(50) PRIMARY KEY
+                )`,
+                `CREATE TABLE ServiceRecords_ServiceTypes (
+                    service_id INT,
+                    service_type VARCHAR(50),
+                    PRIMARY KEY (service_id, service_type),
+                    FOREIGN KEY (service_id) REFERENCES ServiceRecords(service_id) 
+                        ON UPDATE CASCADE ON DELETE CASCADE,
+                    FOREIGN KEY (service_type) REFERENCES ServiceTypes(service_type) 
+                        ON UPDATE CASCADE ON DELETE CASCADE
+                )`,
+                `CREATE TABLE Parts (
+                    part_id INT AUTO_INCREMENT PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL,
+                    manufacturer VARCHAR(255),
+                    part_number VARCHAR(100),
+                    unit_price DECIMAL(10, 2) NOT NULL
+                )`,
+                `CREATE TABLE ServiceRecords_Parts (
+                    service_id INT,
+                    part_id INT,
+                    PRIMARY KEY (service_id, part_id),
+                    FOREIGN KEY (service_id) REFERENCES ServiceRecords(service_id) 
+                        ON UPDATE CASCADE ON DELETE CASCADE,
+                    FOREIGN KEY (part_id) REFERENCES Parts(part_id) 
+                        ON UPDATE CASCADE ON DELETE CASCADE
+                )`,
+                `CREATE TABLE Expenses (
+                    expense_id INT AUTO_INCREMENT PRIMARY KEY,
+                    vin VARCHAR(17) NOT NULL, 
+                    date DATE NOT NULL,
+                    category ENUM('Maintenance', 'Fuel', 'Registration', 'Insurance', 'Misc') NOT NULL,
+                    amount DECIMAL(10, 2) NOT NULL,
+                    description TEXT,
+                    FOREIGN KEY (vin) REFERENCES Vehicles(vin)
+                        ON UPDATE CASCADE ON DELETE CASCADE
+                )`,
+                `CREATE TABLE MaintenanceExpenses (
+                    expense_id INT PRIMARY KEY,
+                    service_id INT NOT NULL,
+                    FOREIGN KEY (service_id) REFERENCES ServiceRecords(service_id) 
+                        ON UPDATE CASCADE ON DELETE CASCADE,
+                    FOREIGN KEY (expense_id) REFERENCES Expenses(expense_id) 
+                        ON UPDATE CASCADE ON DELETE CASCADE
+                )`,
+                `CREATE TABLE RegistrationExpenses (
+                    expense_id INT PRIMARY KEY,
+                    renewal_date DATE NOT NULL,
+                    renewal_period VARCHAR(50),
+                    state VARCHAR(50),
+                    FOREIGN KEY (expense_id) REFERENCES Expenses(expense_id) 
+                        ON UPDATE CASCADE ON DELETE CASCADE
+                )`,
+                `CREATE TABLE InsuranceExpenses (
+                    expense_id INT PRIMARY KEY,
+                    policy_number VARCHAR(100) NOT NULL,
+                    start_date DATE NOT NULL,
+                    end_date DATE NOT NULL,
+                    provider_name VARCHAR(100),
+                    FOREIGN KEY (expense_id) REFERENCES Expenses(expense_id)
+                        ON UPDATE CASCADE ON DELETE CASCADE
+                )`,
+                `CREATE TABLE FuelExpenses (
+                    expense_id INT PRIMARY KEY,
+                    gallons FLOAT NOT NULL,
+                    current_mileage INT NOT NULL,
+                    fuel_type VARCHAR(50),
+                    FOREIGN KEY (expense_id) REFERENCES Expenses(expense_id)
+                        ON UPDATE CASCADE ON DELETE CASCADE
+                )`,
+                `CREATE TABLE UpcomingServices (
+                    event_id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NOT NULL,
+                    vin VARCHAR(17) NOT NULL,
+                    rec_date DATE NOT NULL,
+                    rec_mileage INT NOT NULL,
+                    status VARCHAR(20) NOT NULL,
+                    FOREIGN KEY (user_id) REFERENCES Users(user_id)
+                        ON UPDATE CASCADE ON DELETE CASCADE,
+                    FOREIGN KEY (vin) REFERENCES Vehicles(vin)
+                        ON UPDATE CASCADE ON DELETE CASCADE
+                )`,
+                `CREATE TABLE UpcomingServices_ServiceTypes (
+                    event_id INT,
+                    service_type VARCHAR(50),
+                    PRIMARY KEY (event_id, service_type),
+                    FOREIGN KEY (event_id) REFERENCES UpcomingServices(event_id) 
+                        ON UPDATE CASCADE ON DELETE CASCADE,
+                    FOREIGN KEY (service_type) REFERENCES ServiceTypes(service_type) 
+                        ON UPDATE CASCADE ON DELETE CASCADE
+                )`,
+                `CREATE TABLE Reminder (
+                    reminder_id INT AUTO_INCREMENT,
+                    event_id INT,
+                    message TEXT,
+                    send_date DATE NOT NULL,
+                    was_sent BOOLEAN NOT NULL,
+                    was_read BOOLEAN NOT NULL,
+                    PRIMARY KEY (reminder_id, event_id),
+                    FOREIGN KEY (event_id) REFERENCES UpcomingServices(event_id) 
+                        ON UPDATE CASCADE ON DELETE CASCADE
+                )`
+            ];
+
+            for (const query of createTableQueries) {
+                await Database.executeQuery(query);
+            }
+
+            console.log('Database structure recreated successfully');
+        } catch (error) {
+            console.error('Error recreating database structure:', error);
+            throw new Error(`Failed to recreate database structure: ${error.message}`);
+        }
+    },
+
+    restoreAdmin: async () => {
+        try {
+            // Check if admin user exists
+            const existingAdmin = await Database.select('SELECT user_id FROM Users WHERE username = "admin"');
+            if (existingAdmin.length > 0) {
+                Utils.showAlert('Admin user "admin" already exists. No action taken.', 'info');
+                return;
+            }
+
+            // Insert new admin user
+            await Database.executeQuery(`
+                INSERT INTO Users (username, password_hash, email, birthday, registration_date)
+                VALUES ('admin', '${Utils.hashPassword('admin')}', 'admin@example.com', '2000-01-01', NOW())
+            `);
+            Utils.showAlert('Admin user "admin" restored successfully!', 'success');
+            testManager.render(); // Refresh the display
+        } catch (error) {
+            Utils.showAlert(`Error restoring admin user: ${error.message}`, 'danger');
+        }
+    }
+};
+
+// Make testManager available globally
+window.testManager = testManager; 
