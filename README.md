@@ -129,9 +129,6 @@ chmod +x installation/*.sh
 ### Port Already in Use
 Kill process on port 3000 or change port in `backend/server.js`
 
-### Admin Access Denied
-Use "Restore Admin" button in Database Test section
-
 ### MySQL Not Running
 ```bash
 brew services start mysql  # macOS
