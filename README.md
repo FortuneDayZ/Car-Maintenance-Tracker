@@ -99,58 +99,6 @@ This script will:
 - Benchmark query performance
 - Provide detailed analysis of index effectiveness
 
-## Testing Key Features
-
-### 1. User Authentication
-- Login with admin credentials
-- Create new user accounts
-- Test user permissions
-
-### 2. Vehicle Management
-- Add a new vehicle with VIN, make, model, year
-- Edit vehicle information
-- View vehicle details
-
-### 3. Service Records
-- Add service records with costs
-- Link services to mechanics and shops
-- View service history
-
-### 4. Expense Tracking
-- Log fuel expenses with gallons and mileage
-- Record insurance and registration costs
-- Track maintenance expenses
-
-### 5. Upcoming Services
-- Schedule upcoming maintenance
-- Set reminders for service dates
-- View pending services
-
-### 6. Analytics
-- View cost summaries by category
-- Analyze fuel consumption
-- Review service statistics
-
-### 7. Database Testing (Admin Only)
-- Execute raw SQL queries
-- Upload SQL files
-- Test database performance
-
-## Project Structure
-
-```
-sqlProj/
-├── backend/              # Node.js server
-├── css/                  # Stylesheets
-├── js/                   # Frontend JavaScript
-│   └── managers/         # Feature managers
-├── index/                # Python scripts
-├── installation/         # Setup scripts
-├── sql/                  # Database schema
-├── SQL_Tests/           # Test data and queries
-└── Documents/           # ER diagrams and schemas
-```
-
 ## Division of Work
 
 ### Tiger
@@ -196,10 +144,6 @@ brew services start mysql  # macOS
 - **Database**: MySQL
 - **Data Generation**: Python 3, Faker library
 - **Platform**: macOS (optimized)
-
-## License
-
-MIT License - see LICENSE file for details
 
 
 
