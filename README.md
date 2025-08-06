@@ -99,6 +99,11 @@ This script will:
 - Benchmark query performance
 - Provide detailed analysis of index effectiveness
 
+**⚠️ Performance Warning**: After populating the database with 5,000+ rows, opening the application may cause lag if your system has insufficient memory. Consider:
+- Closing other applications to free up RAM
+- Using a machine with at least 8GB of RAM for optimal performance
+- Starting with smaller datasets for testing if experiencing performance issues
+
 ## Division of Work
 
 ### Tiger
