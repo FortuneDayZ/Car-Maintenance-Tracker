@@ -102,10 +102,14 @@ This script will:
 ## Division of Work
 
 ### Tiger
-- **ER Diagram Design**: Created comprehensive entity-relationship diagram
-- **SQL Schema**: Designed and implemented complete database schema
-- **Authentication Features**: User management and admin system
-- **Database Setup**: SQL scripts for table creation and initial data
+- **ER Diagram Design: Created comprehensive entity-relationship diagram
+- **SQL Schema: Designed and implemented complete database schema
+- **Normalization: Normalized DB to BCNF and documented process
+- **Indexing: Populated DB with 5000 rows per table and benchmarked indexing
+- **Database Setup: SQL scripts for table creation and initial data
+- **Backend: Assisted in implementing backend and logic
+- **Testing: Extensive Testing and bug fixes
+
 
 ### Marsel
 - **Frontend Interface**: Complete web-based user interface
