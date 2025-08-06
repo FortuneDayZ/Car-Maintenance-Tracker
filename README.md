@@ -120,6 +120,9 @@ This script will:
 ```bash
 ./installation/reset_database.sh
 ```
+```bash
+./installation/start_vehicle_system.sh
+```
 
 ```bash
 cd index
