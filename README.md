@@ -102,14 +102,11 @@ This script will:
 ## Division of Work
 
 ### Tiger
-- **ER Diagram Design: Created comprehensive entity-relationship diagram
-- **SQL Schema: Designed and implemented complete database schema
-- **Normalization: Normalized DB to BCNF and documented process
-- **Indexing: Populated DB with 5000 rows per table and benchmarked indexing
-- **Database Setup: SQL scripts for table creation and initial data
-- **Backend: Assisted in implementing backend and logic
-- **Testing: Extensive Testing and bug fixes
-
+- **Frontend Interface**: Complete web-based user interface
+- **Search and Filter Logic**: Vehicle and service search functionality
+- **Testing**: Comprehensive testing of all features
+- **System Integration**: Connected frontend with backend services
+- **Documentation**: User guides and system documentation
 
 ### Marsel
 - **Frontend Interface**: Complete web-based user interface
