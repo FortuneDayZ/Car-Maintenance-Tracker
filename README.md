@@ -102,7 +102,7 @@ This script will:
 **⚠️ Performance Warning**: After populating the database with 5,000+ rows, opening the application may cause lag if your system has insufficient memory. Consider:
 - Closing other applications to free up RAM
 - Using a machine with at least 8GB of RAM for optimal performance
-- Starting with smaller datasets for testing if experiencing performance issues
+- Starting with smaller datasets for testing if experiencing performance issues (update the populate.py file)
 
 ## Division of Work
 
