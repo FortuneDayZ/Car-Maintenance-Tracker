@@ -267,6 +267,30 @@ EOF
                     fi
                 fi
                 
+                # Check if sample data exists and ask user if they want to insert more
+                vehicles_count=$(mysql --defaults-file="$MYSQL_CONFIG_FILE" $MYSQL_DATABASE -e "SELECT COUNT(*) FROM Vehicles;" -s -N 2>/dev/null)
+                if [ "$vehicles_count" -eq 0 ]; then
+                    echo ""
+                    read -p "No sample data found. Do you want to insert sample data? (yes/no): " -r
+                    if [[ $REPLY =~ ^[Yy][Ee][Ss]$ ]]; then
+                        print_status "Inserting sample data..."
+                        if [ -f "../SQL_Tests/test_insert.sql" ]; then
+                            mysql --defaults-file="$MYSQL_CONFIG_FILE" $MYSQL_DATABASE < ../SQL_Tests/test_insert.sql >/dev/null 2>&1
+                        else
+                            mysql --defaults-file="$MYSQL_CONFIG_FILE" $MYSQL_DATABASE < SQL_Tests/test_insert.sql >/dev/null 2>&1
+                        fi
+                        if [ $? -eq 0 ]; then
+                            print_success "Sample data inserted successfully"
+                        else
+                            print_warning "Failed to insert sample data (this is optional)"
+                        fi
+                    else
+                        print_status "Skipping sample data insertion."
+                    fi
+                else
+                    print_success "Sample data already exists ($vehicles_count vehicles found)"
+                fi
+                
             else
                 print_warning "Database 'Final' does not exist. Creating database and tables..."
                 
@@ -282,17 +306,23 @@ EOF
                 if [ $? -eq 0 ]; then
                     print_success "Database and tables created successfully"
                     
-                    # Insert sample data
-                    print_status "Inserting sample data..."
-                    if [ -f "../SQL_Tests/test_insert.sql" ]; then
-                        mysql --defaults-file="$MYSQL_CONFIG_FILE" $MYSQL_DATABASE < ../SQL_Tests/test_insert.sql >/dev/null 2>&1
+                    # Ask user if they want to insert sample data
+                    echo ""
+                    read -p "Do you want to insert sample data? (yes/no): " -r
+                    if [[ $REPLY =~ ^[Yy][Ee][Ss]$ ]]; then
+                        print_status "Inserting sample data..."
+                        if [ -f "../SQL_Tests/test_insert.sql" ]; then
+                            mysql --defaults-file="$MYSQL_CONFIG_FILE" $MYSQL_DATABASE < ../SQL_Tests/test_insert.sql >/dev/null 2>&1
+                        else
+                            mysql --defaults-file="$MYSQL_CONFIG_FILE" $MYSQL_DATABASE < SQL_Tests/test_insert.sql >/dev/null 2>&1
+                        fi
+                        if [ $? -eq 0 ]; then
+                            print_success "Sample data inserted successfully"
+                        else
+                            print_warning "Failed to insert sample data (this is optional)"
+                        fi
                     else
-                        mysql --defaults-file="$MYSQL_CONFIG_FILE" $MYSQL_DATABASE < SQL_Tests/test_insert.sql >/dev/null 2>&1
-                    fi
-                    if [ $? -eq 0 ]; then
-                        print_success "Sample data inserted successfully"
-                    else
-                        print_warning "Failed to insert sample data (this is optional)"
+                        print_status "Skipping sample data insertion."
                     fi
                     
                     # Set up admin user
