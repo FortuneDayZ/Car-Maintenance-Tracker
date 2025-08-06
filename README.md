@@ -104,6 +104,32 @@ This script will:
 - Using a machine with at least 8GB of RAM for optimal performance
 - Starting with smaller datasets for testing if experiencing performance issues (update the populate.py file)
 
+## Step 2: Reset Database and Test WITHOUT Indexes
+
+### Reset the Database (removes all indexes)
+
+```bash
+./installation/reset_database.sh
+```
+
+1. Open `sql/createdb.sql`
+2. Locate lines 199–212
+3. Delete `CREATE INDEX` statements
+4. Reset the database to apply changes:
+
+```bash
+./installation/reset_database.sh
+```
+
+```bash
+cd index
+python3 -m venv venv
+source venv/bin/activate
+pip3 install mysql-connector-python faker
+python3 populate.py
+python3 index.py
+```
+
 ## Division of Work
 
 ### Tiger
