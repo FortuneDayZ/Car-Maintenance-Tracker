@@ -3,6 +3,16 @@
 2) ./installation/mysql_config.sh test
 3) ./installation/start_vehicle_system.sh
 4) ./installation/reset_database.sh
+5) cd ./index
+6) python3 -m venv venv
+or python
+7) source venv/bin/activate
+8) pip3 install mysql-connector-python faker  
+or pip
+9)  python3 populate.py
+10) python3 index.py
+
+
 
 
 ### Prerequisites

@@ -3,10 +3,19 @@ import string
 import mysql.connector
 from faker import Faker
 from datetime import timedelta
+import getpass  # for secure password input
 
 fake = Faker()
+
+# Prompt user for MySQL password
+mysql_password = getpass.getpass("Enter your MySQL password: ")
+
+# Establish MySQL connection
 conn = mysql.connector.connect(
-    host='localhost', user='root', password='tigyan2005', database='Final'
+    host='localhost',
+    user='root',
+    password=mysql_password,
+    database='Final'
 )
 cursor = conn.cursor()
 
@@ -16,14 +25,12 @@ def random_vin():
 def insert_users(n=5000):
     usernames = set()
     emails = set()
-
     while len(usernames) < n:
         username = fake.user_name()
         email = fake.unique.email()
         if username in usernames:
             continue
         usernames.add(username)
-
         password_hash = fake.sha256()[:60]
         birthday = fake.date_of_birth(minimum_age=18, maximum_age=80)
         reg_date = fake.date_between(start_date='-5y', end_date='today')
@@ -38,13 +45,11 @@ def insert_vehicles(n=5000):
     makes = ['Toyota', 'Ford', 'Chevy', 'BMW', 'Honda']
     models = ['Corolla', 'F-150', 'Civic', 'Accord', 'Mustang']
     vins = set()
-
     while len(vins) < n:
         vin = random_vin()
         if vin in vins:
             continue
         vins.add(vin)
-
         make = random.choice(makes)
         model = random.choice(models)
         year = random.randint(1995, 2023)
@@ -52,7 +57,6 @@ def insert_vehicles(n=5000):
             INSERT INTO Vehicles (vin, make, model, year)
             VALUES (%s, %s, %s, %s)
         ''', (vin, make, model, year))
-
     conn.commit()
 
 def insert_owns():
